@@ -1,0 +1,84 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import {
+  BookOpen,
+  CalendarCheck2,
+  GraduationCap,
+  Home,
+  NotebookPen,
+} from 'lucide-react'
+
+const navigation = [
+  { href: '/student/home', label: '홈', icon: Home },
+  { href: '/student/attendance', label: '출결', icon: CalendarCheck2 },
+  { href: '/student/assignments', label: '과제', icon: NotebookPen },
+  { href: '/student/review', label: '복습', icon: BookOpen },
+]
+
+export default function StudentLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const pathname = usePathname()
+
+  return (
+    <div className="min-h-screen bg-transparent pb-24">
+      <div className="mx-auto max-w-[680px] px-4 pt-4">
+        <header className="glass-panel rounded-[30px] border border-white/55 px-5 py-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-xs uppercase tracking-[0.24em] text-slate-400">AcadeMind</p>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
+                  <GraduationCap className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-slate-950">민수님의 학습 홈</p>
+                  <p className="text-sm leading-6 text-slate-500">
+                    오늘 해야 할 일부터 바로 확인해요
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="w-full rounded-2xl bg-white px-4 py-3 shadow-sm ring-1 ring-slate-200 sm:w-auto">
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Today</p>
+              <p className="mt-1 text-sm font-semibold text-slate-800">4월 8일 수요일</p>
+            </div>
+          </div>
+        </header>
+
+        <main className="mx-auto max-w-[640px] px-1 pb-4 pt-6">
+        {children}
+        </main>
+      </div>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[720px] px-4 pb-4">
+        <div className="glass-panel mx-auto grid grid-cols-4 rounded-[28px] border border-white/65 p-2 shadow-2xl">
+          {navigation.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`)
+            const Icon = item.icon
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 rounded-[22px] px-3 py-3 text-xs font-medium transition ${
+                  isActive
+                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+    </div>
+  )
+}
