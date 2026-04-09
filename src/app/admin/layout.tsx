@@ -27,6 +27,7 @@ const navigation = [
   { href: '/admin/students', label: '학생 관리', icon: Users },
   { href: '/admin/teachers', label: '강사 관리', icon: UserSquare2 },
   { href: '/admin/classes', label: '반 관리', icon: BookOpen },
+  { href: '/admin/curriculum', label: '커리큘럼', icon: BookOpen },
   { href: '/admin/schedule', label: '시간표', icon: CalendarDays },
   { href: '/admin/payments', label: '수강료', icon: CircleDollarSign },
   { href: '/admin/churn', label: '이탈 예측', icon: AlertTriangle },

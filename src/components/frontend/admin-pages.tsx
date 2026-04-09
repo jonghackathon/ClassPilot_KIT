@@ -964,20 +964,46 @@ export function AdminSchedulePage() {
   const [weekIndex, setWeekIndex] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
   const [showConflict, setShowConflict] = useState(true)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [studentQuery, setStudentQuery] = useState('')
+  const [selectedStudents, setSelectedStudents] = useState(['김민수', '이서연'])
 
   const scheduleRows = [
-    { day: '월', time: '16:00', title: '수학 A반', room: '3강의실', tone: 'indigo' as const },
-    { day: '화', time: '17:00', title: '영어 B반', room: '2강의실', tone: 'sky' as const },
-    { day: '수', time: '15:00', title: '국어 A반', room: '1강의실', tone: 'violet' as const },
-    { day: '목', time: '18:00', title: '수학 B반', room: '3강의실', tone: 'amber' as const },
+    { day: '월', time: '16:00', title: '수학 A반', room: '3강의실', teacher: '박강사', assigned: 19, tone: 'indigo' as const },
+    { day: '화', time: '17:00', title: '영어 B반', room: '2강의실', teacher: '김강사', assigned: 15, tone: 'sky' as const },
+    { day: '수', time: '15:00', title: '국어 A반', room: '1강의실', teacher: '이강사', assigned: 8, tone: 'violet' as const },
+    { day: '목', time: '18:00', title: '수학 B반', room: '3강의실', teacher: '정강사', assigned: 12, tone: 'amber' as const },
   ]
+  const [selectedSchedule, setSelectedSchedule] = useState(scheduleRows[0])
+
+  const candidateStudents = [
+    { name: '김민수', grade: '중2', course: '수학 심화', preferred: '월/수 16:00 선호' },
+    { name: '이서연', grade: '중3', course: '영어 문해', preferred: '주 2회 유지 희망' },
+    { name: '박지호', grade: '중1', course: '국어 기초', preferred: '수업 후 바로 이동 가능' },
+    { name: '최하은', grade: '중2', course: '수학 내신', preferred: '목요일 보강 가능' },
+    { name: '정도윤', grade: '중3', course: '특강 대기', preferred: '시험 전 4주 집중 희망' },
+  ]
+
+  const filteredStudents = candidateStudents.filter((student) =>
+    `${student.name} ${student.grade} ${student.course} ${student.preferred}`
+      .toLowerCase()
+      .includes(studentQuery.toLowerCase()),
+  )
+
+  function toggleStudent(name: string) {
+    setSelectedStudents((current) =>
+      current.includes(name)
+        ? current.filter((student) => student !== name)
+        : [...current, name],
+    )
+  }
 
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="시간표"
-        title="주간 시간표를 보고 새 수업을 바로 추가할 수 있어요"
-        description="주차 이동, 충돌 경고, 새 수업 추가 모달까지 연결해서 운영자가 실제 배정 순서를 확인할 수 있습니다."
+        title="주간 시간표와 학생 배정 흐름을 한 화면에서 같이 확인해요"
+        description="주차 이동, 충돌 경고, 새 수업 추가, 학생 배정까지 이어서 처리할 수 있게 운영 동선을 한 번에 묶었습니다."
         action={
           <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setCreateOpen(true)} type="button">
             <Plus className="h-4 w-4" />
@@ -1001,7 +1027,10 @@ export function AdminSchedulePage() {
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-          <StatusBadge label="강의실 3개 운영" tone="slate" />
+          <div className="flex flex-wrap gap-2">
+            <StatusBadge label="강의실 3개 운영" tone="slate" />
+            <StatusBadge label={`학생 ${selectedStudents.length}명 임시 배정`} tone="indigo" />
+          </div>
         </div>
       </SurfaceCard>
 
@@ -1022,10 +1051,36 @@ export function AdminSchedulePage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {scheduleRows.map((row) => (
           <SurfaceCard key={`${row.day}-${row.title}`}>
-            <StatusBadge label={row.day} tone={row.tone} />
+            <div className="flex items-start justify-between gap-3">
+              <StatusBadge label={row.day} tone={row.tone} />
+              <StatusBadge label={`${row.assigned}명 배정`} tone="slate" />
+            </div>
             <h2 className="mt-4 text-2xl font-semibold text-slate-950">{row.title}</h2>
             <p className="mt-2 text-sm text-slate-500">{row.time} · {row.room}</p>
-            <p className="mt-4 text-sm text-slate-600">이번 주 배정 기준으로 표시되는 카드입니다.</p>
+            <p className="mt-2 text-sm text-slate-500">담당 강사 {row.teacher}</p>
+            <p className="mt-4 text-sm text-slate-600">대기 학생을 검색해 바로 넣을 수 있도록 배정 흐름을 카드 안에 연결했습니다.</p>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <button
+                className={secondaryButton}
+                onClick={() => {
+                  setSelectedSchedule(row)
+                  setAssignOpen(true)
+                }}
+                type="button"
+              >
+                학생 배정
+              </button>
+              <button
+                className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')}
+                onClick={() => {
+                  setSelectedSchedule(row)
+                  setCreateOpen(true)
+                }}
+                type="button"
+              >
+                편성 수정
+              </button>
+            </div>
           </SurfaceCard>
         ))}
       </div>
@@ -1033,19 +1088,106 @@ export function AdminSchedulePage() {
       <OverlayPanel
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        title="새 수업 배정"
-        description="시간표 생성 전 강의실, 강사, 반 정보를 한 번에 검토하는 패널입니다."
+        title={`${selectedSchedule.title} 편성안`}
+        description="시간표 생성 전 강의실, 강사, 반 정보와 학생 배정까지 한 번에 검토하는 패널입니다."
       >
-        <Field label="반 이름" placeholder="중간고사 대비 특강" />
-        <Field label="강사" placeholder="박강사" />
-        <Field label="요일 / 시간" placeholder="목 18:00 - 19:30" />
-        <Field label="강의실" placeholder="3강의실" />
+        <Field label="반 이름" placeholder={selectedSchedule.title} />
+        <Field label="강사" placeholder={selectedSchedule.teacher} />
+        <Field label="요일 / 시간" placeholder={`${selectedSchedule.day} ${selectedSchedule.time} - 19:30`} />
+        <Field label="강의실" placeholder={selectedSchedule.room} />
+        <div className="space-y-3 rounded-[28px] border border-slate-200 bg-slate-50 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-slate-900">학생 배정</p>
+            <StatusBadge label={`${selectedStudents.length}명 선택`} tone="indigo" />
+          </div>
+          <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+            <Search className="h-4 w-4" />
+            <input
+              className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+              onChange={(event) => setStudentQuery(event.target.value)}
+              placeholder="학생명, 학년, 희망 과정을 검색해 보세요"
+              value={studentQuery}
+            />
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {filteredStudents.slice(0, 4).map((student) => {
+              const selected = selectedStudents.includes(student.name)
+              return (
+                <button
+                  key={student.name}
+                  className={cx(
+                    'rounded-[24px] border px-4 py-4 text-left transition',
+                    selected ? 'border-indigo-200 bg-indigo-50' : 'border-slate-200 bg-white',
+                  )}
+                  onClick={() => toggleStudent(student.name)}
+                  type="button"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="font-semibold text-slate-900">{student.name}</p>
+                    <StatusBadge label={selected ? '선택됨' : student.grade} tone={selected ? 'indigo' : 'slate'} />
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{student.course}</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{student.preferred}</p>
+                </button>
+              )
+            })}
+          </div>
+        </div>
         <div className="rounded-[24px] border border-amber-100 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-700">
           같은 시간대에 3강의실 사용 카드가 있어 충돌 여부를 먼저 확인해 주세요.
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button className={secondaryButton} onClick={() => setCreateOpen(false)} type="button">취소</button>
           <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setCreateOpen(false)} type="button">배정안 저장</button>
+        </div>
+      </OverlayPanel>
+
+      <OverlayPanel
+        open={assignOpen}
+        onClose={() => setAssignOpen(false)}
+        title={`${selectedSchedule.title} 학생 배정`}
+        description="수업 카드에서 바로 열리는 학생 배정 패널입니다. 검색, 선택, 임시 배정 인원 확인을 같은 흐름으로 묶었습니다."
+      >
+        <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+          <Search className="h-4 w-4" />
+          <input
+            className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+            onChange={(event) => setStudentQuery(event.target.value)}
+            placeholder="학생명, 학년, 희망 과정을 검색해 보세요"
+            value={studentQuery}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {selectedStudents.map((student) => (
+            <StatusBadge key={student} label={student} tone="indigo" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {filteredStudents.map((student) => {
+            const selected = selectedStudents.includes(student.name)
+            return (
+              <div key={student.name} className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-900">{student.name} · {student.grade}</p>
+                    <p className="mt-1 text-sm text-slate-600">{student.course}</p>
+                    <p className="mt-1 text-xs text-slate-500">{student.preferred}</p>
+                  </div>
+                  <button
+                    className={selected ? cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20') : secondaryButton}
+                    onClick={() => toggleStudent(student.name)}
+                    type="button"
+                  >
+                    {selected ? '배정 해제' : '배정하기'}
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <button className={secondaryButton} onClick={() => setAssignOpen(false)} type="button">닫기</button>
+          <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setAssignOpen(false)} type="button">학생 배정 저장</button>
         </div>
       </OverlayPanel>
     </div>
