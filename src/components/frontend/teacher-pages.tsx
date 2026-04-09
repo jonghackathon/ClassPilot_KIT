@@ -33,10 +33,13 @@ import {
   SurfaceCard,
   cx,
 } from '@/components/frontend/common'
+import { FeedbackPanel } from '@/components/frontend/feedback-panel'
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
 
 type AttendanceStatus = '출석' | '지각' | '조퇴' | '결석'
+type HomeworkStatus = '완료' | '미완료'
+type AssignmentType = '코딩' | '에세이' | '이미지'
 
 type Lesson = {
   id: string
@@ -142,13 +145,28 @@ function Field({
 
 export function TeacherAttendancePage() {
   const students = [
-    ['이지은', '중2', '제출'],
-    ['정우진', '중3', '미제출'],
-    ['한소영', '중2', '제출'],
-    ['김태호', '중1', '미제출'],
-  ] as const
+    { name: '이지은', grade: '중2', assignment: '제출', weekly: ['출석', '출석', '출석', '지각', '출석'] as AttendanceStatus[] },
+    { name: '정우진', grade: '중3', assignment: '미제출', weekly: ['지각', '출석', '출석', '출석', '조퇴'] as AttendanceStatus[] },
+    { name: '한소영', grade: '중2', assignment: '제출', weekly: ['출석', '출석', '출석', '출석', '출석'] as AttendanceStatus[] },
+    { name: '김태호', grade: '중1', assignment: '미제출', weekly: ['결석', '결석', '지각', '출석', '결석'] as AttendanceStatus[] },
+  ]
   const [viewMode, setViewMode] = useState<'일별' | '주별'>('일별')
   const [attendanceMap, setAttendanceMap] = useState<Record<string, AttendanceStatus>>(initialAttendance)
+  const [homeworkMap, setHomeworkMap] = useState<Record<string, HomeworkStatus>>({
+    'lesson-1-이지은': '완료',
+    'lesson-1-정우진': '미제출' as HomeworkStatus,
+    'lesson-1-한소영': '완료',
+    'lesson-1-김태호': '미완료',
+    'lesson-2-이지은': '완료',
+    'lesson-2-정우진': '완료',
+    'lesson-2-한소영': '완료',
+    'lesson-2-김태호': '미완료',
+  })
+  const [reasonMap, setReasonMap] = useState<Record<string, string>>({
+    'lesson-1-정우진': '교통 지연으로 10분 늦게 도착',
+    'lesson-1-김태호': '감기 증상으로 결석 연락',
+    'lesson-2-김태호': '보강 일정 조율 필요',
+  })
   const [confirmOpen, setConfirmOpen] = useState(false)
 
   const counts = useMemo(() => {
@@ -161,12 +179,20 @@ export function TeacherAttendancePage() {
     }
   }, [attendanceMap])
 
+  const homeworkCounts = useMemo(() => {
+    const values = Object.values(homeworkMap)
+    return {
+      완료: values.filter((value) => value === '완료').length,
+      미완료: values.filter((value) => value === '미완료').length,
+    }
+  }, [homeworkMap])
+
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="출결 관리"
-        title="수업 전중후 흐름을 끊지 않도록 출결과 과제를 한 페이지에 배치했습니다"
-        description="학생별 상태를 바로 바꾸고, 마지막에는 반 전체를 한 번에 확정하는 흐름까지 이어지도록 구성했습니다."
+        title="출결, 숙제, 사유 입력을 수업 흐름 안에서 한 번에 정리해요"
+        description="일별 입력과 주별 그리드를 오가면서 학생별 출결 상태, 숙제 O/X, 지각·결석 사유까지 끊기지 않게 입력하도록 보강했습니다."
         backHref="/teacher/dashboard"
         backLabel="강사 홈"
         action={<ActionButton href="/teacher/copilot/lesson-1" label="코파일럿 시작" tone="violet" />}
@@ -197,79 +223,173 @@ export function TeacherAttendancePage() {
         </div>
       </SurfaceCard>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="출석" value={`${counts.출석}명`} detail="정상 출석" icon={CheckCircle2} tone="emerald" />
         <MetricCard label="지각" value={`${counts.지각}명`} detail="주의 필요" icon={TrendingUp} tone="amber" />
         <MetricCard label="조퇴" value={`${counts.조퇴}명`} detail="중간 퇴실" icon={CalendarClock} tone="sky" />
         <MetricCard label="결석" value={`${counts.결석}명`} detail="후속 확인" icon={CircleHelp} tone="rose" />
+        <MetricCard label="숙제 완료" value={`${homeworkCounts.완료}건`} detail={`${homeworkCounts.미완료}건 미완료`} icon={BookCheck} tone="violet" />
       </div>
 
-      {teacherLessons.map((lesson) => (
-        <SurfaceCard key={lesson.title}>
-          <SectionHeading
-            title={`${lesson.title} · ${lesson.time}`}
-            subtitle={`${viewMode} 보기 · ${lesson.topic}`}
-            action={<ActionButton href={lesson.href} label="AI 코파일럿" tone="violet" />}
-          />
-          <div className="mt-5 grid gap-3">
-            {students.map(([name, grade, assignment]) => {
-              const key = `${lesson.id}-${name}`
-              const attendance = attendanceMap[key]
-              return (
-                <div key={key} className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                    <div>
-                      <p className="font-semibold text-slate-900">{name}</p>
-                      <p className="mt-1 text-sm text-slate-500">{grade}</p>
+      {viewMode === '일별'
+        ? teacherLessons.map((lesson) => (
+            <SurfaceCard key={lesson.title}>
+              <SectionHeading
+                title={`${lesson.title} · ${lesson.time}`}
+                subtitle={`일별 보기 · ${lesson.topic}`}
+                action={<ActionButton href={lesson.href} label="AI 코파일럿" tone="violet" />}
+              />
+              <div className="mt-5 grid gap-3">
+                {students.map((student) => {
+                  const key = `${lesson.id}-${student.name}`
+                  const attendance = attendanceMap[key]
+                  const homework = homeworkMap[key]
+                  return (
+                    <div key={key} className="rounded-[24px] border border-slate-200 bg-white px-4 py-4">
+                      <div className="flex flex-col gap-4">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="font-semibold text-slate-900">{student.name}</p>
+                            <p className="mt-1 text-sm text-slate-500">{student.grade}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {(['출석', '지각', '조퇴', '결석'] as const).map((status) => (
+                              <button
+                                key={status}
+                                className={cx(
+                                  'rounded-2xl px-4 py-3 text-sm font-medium transition',
+                                  attendance === status
+                                    ? status === '출석'
+                                      ? 'bg-emerald-600 text-white'
+                                      : status === '지각'
+                                        ? 'bg-amber-500 text-white'
+                                        : status === '결석'
+                                          ? 'bg-rose-600 text-white'
+                                          : 'bg-sky-600 text-white'
+                                    : 'bg-slate-100 text-slate-600',
+                                )}
+                                onClick={() =>
+                                  setAttendanceMap((current) => ({
+                                    ...current,
+                                    [key]: status,
+                                  }))
+                                }
+                                type="button"
+                              >
+                                {status}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {(['완료', '미완료'] as const).map((status) => (
+                            <button
+                              key={status}
+                              className={cx(
+                                pillButton,
+                                homework === status
+                                  ? status === '완료'
+                                    ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20'
+                                    : 'bg-slate-950 text-white'
+                                  : 'bg-slate-100 text-slate-600',
+                              )}
+                              onClick={() =>
+                                setHomeworkMap((current) => ({
+                                  ...current,
+                                  [key]: status,
+                                }))
+                              }
+                              type="button"
+                            >
+                              숙제 {status === '완료' ? 'O' : 'X'}
+                            </button>
+                          ))}
+                          <StatusBadge label={student.assignment} tone={student.assignment === '제출' ? 'emerald' : 'rose'} />
+                        </div>
+                        <label className="block space-y-2">
+                          <span className="text-sm font-semibold text-slate-800">지각·결석·조퇴 사유</span>
+                          <input
+                            className="h-[52px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+                            onChange={(event) =>
+                              setReasonMap((current) => ({
+                                ...current,
+                                [key]: event.target.value,
+                              }))
+                            }
+                            placeholder="학부모 연락, 교통, 건강 상태 등"
+                            value={reasonMap[key] ?? ''}
+                          />
+                        </label>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(['출석', '지각', '조퇴', '결석'] as const).map((status) => (
-                        <button
-                          key={status}
-                          className={cx(
-                            'rounded-2xl px-4 py-3 text-sm font-medium transition',
-                            attendance === status
-                              ? status === '출석'
-                                ? 'bg-emerald-600 text-white'
-                                : status === '지각'
-                                  ? 'bg-amber-500 text-white'
-                                  : status === '결석'
-                                    ? 'bg-rose-600 text-white'
-                                    : 'bg-sky-600 text-white'
-                              : 'bg-slate-100 text-slate-600',
-                          )}
-                          onClick={() =>
-                            setAttendanceMap((current) => ({
-                              ...current,
-                              [key]: status,
-                            }))
-                          }
-                          type="button"
-                        >
-                          {status}
-                        </button>
+                  )
+                })}
+              </div>
+            </SurfaceCard>
+          ))
+        : (
+          <SurfaceCard>
+            <SectionHeading
+              title="주별 출결 그리드"
+              subtitle="월~금 출결 추이를 한 번에 보고 숙제 완료 건수까지 같이 확인합니다."
+              action={<StatusBadge label="4월 2주차" tone="slate" />}
+            />
+            <div className="mt-6 overflow-x-auto">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-slate-400">
+                  <tr>
+                    <th className="pb-3 font-medium">학생</th>
+                    <th className="pb-3 font-medium">월</th>
+                    <th className="pb-3 font-medium">화</th>
+                    <th className="pb-3 font-medium">수</th>
+                    <th className="pb-3 font-medium">목</th>
+                    <th className="pb-3 font-medium">금</th>
+                    <th className="pb-3 font-medium">숙제</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {students.map((student) => (
+                    <tr key={student.name}>
+                      <td className="py-4 font-semibold text-slate-900">{student.name}</td>
+                      {student.weekly.map((day, index) => (
+                        <td key={`${student.name}-${index}`} className="py-4">
+                          <StatusBadge
+                            label={day}
+                            tone={
+                              day === '출석'
+                                ? 'emerald'
+                                : day === '지각'
+                                  ? 'amber'
+                                  : day === '조퇴'
+                                    ? 'sky'
+                                    : 'rose'
+                            }
+                          />
+                        </td>
                       ))}
-                    </div>
-                    <StatusBadge label={assignment} tone={assignment === '제출' ? 'emerald' : 'rose'} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </SurfaceCard>
-      ))}
+                      <td className="py-4 text-slate-600">
+                        {student.weekly.filter((day) => day === '출석').length} / 5 완료
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SurfaceCard>
+        )}
 
       <OverlayPanel
         open={confirmOpen}
         onClose={() => setConfirmOpen(false)}
         title="출결 전체 확정"
-        description="현재 변경된 상태를 확인한 뒤 반 전체 출결을 한번에 저장하는 흐름입니다."
+        description="현재 변경된 출결과 숙제 입력을 확인한 뒤 반 전체 기록을 한 번에 저장하는 흐름입니다."
       >
         <div className="grid gap-3 sm:grid-cols-2">
           <StatusBadge label={`출석 ${counts.출석}명`} tone="emerald" />
           <StatusBadge label={`지각 ${counts.지각}명`} tone="amber" />
           <StatusBadge label={`조퇴 ${counts.조퇴}명`} tone="sky" />
           <StatusBadge label={`결석 ${counts.결석}명`} tone="rose" />
+          <StatusBadge label={`숙제 완료 ${homeworkCounts.완료}건`} tone="violet" />
         </div>
         <div className="flex justify-end gap-3 pt-2">
           <button className={lineButton} onClick={() => setConfirmOpen(false)} type="button">취소</button>
@@ -282,14 +402,22 @@ export function TeacherAttendancePage() {
 
 export function TeacherAssignmentsPage() {
   const assignments = [
-    { title: 'Python 반복문 실습', group: '중급 A반', due: '마감 D-2', progress: 67, href: '/teacher/assignments/python-loop' },
-    { title: 'HTML 포트폴리오 페이지', group: '초급 B반', due: '마감 D-5', progress: 33, href: '/teacher/assignments/html-portfolio' },
-    { title: '리스트 컴프리헨션 연습', group: '중급 A반', due: '마감 D-12', progress: 84, href: '/teacher/assignments/list-comprehension' },
+    { title: 'Python 반복문 실습', group: '중급 A반', due: '마감 D-2', progress: 67, href: '/teacher/assignments/python-loop', type: '코딩' as AssignmentType, summary: '코드 제출 + 간단한 설명 작성', asset: '코드 템플릿 제공' },
+    { title: 'HTML 포트폴리오 페이지', group: '초급 B반', due: '마감 D-5', progress: 33, href: '/teacher/assignments/html-portfolio', type: '이미지' as AssignmentType, summary: '레이아웃 캡처 이미지를 함께 제출', asset: '이미지 2장 업로드' },
+    { title: '리스트 컴프리헨션 연습', group: '중급 A반', due: '마감 D-12', progress: 84, href: '/teacher/assignments/list-comprehension', type: '에세이' as AssignmentType, summary: '풀이 과정과 개념 설명 중심', asset: 'AI 첨삭 사용 가능' },
   ]
   const [statusFilter, setStatusFilter] = useState<'전체' | '진행중' | '피드백 대기'>('전체')
+  const [typeFilter, setTypeFilter] = useState<'전체' | AssignmentType>('전체')
   const [createOpen, setCreateOpen] = useState(false)
+  const [batchOpen, setBatchOpen] = useState(false)
+  const [selectedType, setSelectedType] = useState<AssignmentType>('코딩')
+  const [attachmentName, setAttachmentName] = useState('이미지 첨부 없음')
 
   const filteredAssignments = assignments.filter((assignment) => {
+    if (typeFilter !== '전체' && assignment.type !== typeFilter) {
+      return false
+    }
+
     if (statusFilter === '전체') {
       return true
     }
@@ -306,32 +434,55 @@ export function TeacherAssignmentsPage() {
       <PageHero
         eyebrow="과제 관리"
         title="반별 과제 진행 상황과 제출률을 바로 읽을 수 있는 화면"
-        description="새 과제 생성 모달과 진행 상태 필터를 붙여서 과제 운영 흐름을 실제처럼 확인할 수 있습니다."
+        description="과제 3유형, 이미지 첨부, 일괄 생성까지 프론트 흐름을 이어서 보강했습니다."
         backHref="/teacher/dashboard"
         backLabel="강사 홈"
         action={
-          <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setCreateOpen(true)} type="button">
-            <NotebookPen className="h-4 w-4" />
-            과제 만들기
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button className={lineButton} onClick={() => setBatchOpen(true)} type="button">
+              <Sparkles className="h-4 w-4" />
+              일괄 생성
+            </button>
+            <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setCreateOpen(true)} type="button">
+              <NotebookPen className="h-4 w-4" />
+              과제 만들기
+            </button>
+          </div>
         }
       />
 
       <SurfaceCard>
-        <div className="flex flex-wrap gap-2">
-          {(['전체', '진행중', '피드백 대기'] as const).map((status) => (
-            <button
-              key={status}
-              className={cx(
-                pillButton,
-                statusFilter === status ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'bg-white text-slate-600 ring-1 ring-slate-200',
-              )}
-              onClick={() => setStatusFilter(status)}
-              type="button"
-            >
-              {status}
-            </button>
-          ))}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
+            {(['전체', '진행중', '피드백 대기'] as const).map((status) => (
+              <button
+                key={status}
+                className={cx(
+                  pillButton,
+                  statusFilter === status ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'bg-white text-slate-600 ring-1 ring-slate-200',
+                )}
+                onClick={() => setStatusFilter(status)}
+                type="button"
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(['전체', '코딩', '에세이', '이미지'] as const).map((type) => (
+              <button
+                key={type}
+                className={cx(
+                  pillButton,
+                  typeFilter === type ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200',
+                )}
+                onClick={() => setTypeFilter(type)}
+                type="button"
+              >
+                {type}
+              </button>
+            ))}
+          </div>
         </div>
       </SurfaceCard>
 
@@ -341,9 +492,13 @@ export function TeacherAssignmentsPage() {
             <SurfaceCard key={assignment.title}>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-sm font-medium text-amber-600">{assignment.due}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium text-amber-600">{assignment.due}</p>
+                    <StatusBadge label={assignment.type} tone={assignment.type === '코딩' ? 'indigo' : assignment.type === '에세이' ? 'violet' : 'sky'} />
+                  </div>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-950">{assignment.title}</h2>
                   <p className="mt-2 text-sm text-slate-500">{assignment.group}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{assignment.summary}</p>
                 </div>
                 <Link href={assignment.href} className="text-sm font-semibold text-indigo-600">상세 보기</Link>
               </div>
@@ -351,14 +506,17 @@ export function TeacherAssignmentsPage() {
                 <ProgressBar value={assignment.progress} tone={assignment.progress > 80 ? 'emerald' : assignment.progress > 50 ? 'indigo' : 'amber'} />
               </div>
               <p className="mt-3 text-sm text-slate-500">제출 현황 {Math.round((assignment.progress / 100) * 12)} / 12</p>
+              <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                {assignment.asset}
+              </div>
             </SurfaceCard>
           ))}
         </div>
 
         <SurfaceCard className="h-fit">
-          <SectionHeading title="과제 운영 메모" subtitle="새 과제 생성 시 같이 확인할 항목" />
+          <SectionHeading title="과제 운영 메모" subtitle="유형별로 확인할 항목" />
           <div className="mt-5 space-y-3">
-            {['반 선택', '과제 제목', '과제 설명', '마감일', 'AI 사용 안내'].map((field) => (
+            {['코딩: 실행 기준과 제출 형식', '에세이: AI 첨삭 허용 범위', '이미지: 캡처/스캔 업로드 규칙', '일괄 생성: 반별 동일 마감', '피드백 대기: 검토 기준 통일'].map((field) => (
               <div key={field} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">{field}</div>
             ))}
           </div>
@@ -375,15 +533,69 @@ export function TeacherAssignmentsPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         title="새 과제 만들기"
-        description="반, 제목, 마감일, 안내 문구를 한 번에 채울 수 있는 프론트 모달입니다."
+        description="반, 유형, 이미지 첨부, 안내 문구를 한 번에 채울 수 있는 프론트 모달입니다."
       >
+        <div className="flex flex-wrap gap-2">
+          {(['코딩', '에세이', '이미지'] as const).map((type) => (
+            <button
+              key={type}
+              className={cx(
+                pillButton,
+                selectedType === type ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'bg-white text-slate-600 ring-1 ring-slate-200',
+              )}
+              onClick={() => setSelectedType(type)}
+              type="button"
+            >
+              {type}
+            </button>
+          ))}
+        </div>
         <Field label="반 선택" defaultValue="중급 A반" />
-        <Field label="과제 제목" defaultValue="반복문 추가 연습" />
+        <Field label="과제 제목" defaultValue={selectedType === '이미지' ? '레이아웃 캡처 업로드' : selectedType === '에세이' ? '개념 설명 에세이' : '반복문 추가 연습'} />
         <Field label="마감일" defaultValue="2026-04-12" />
         <Field label="과제 설명" defaultValue="for문과 while문 차이를 비교하며 예제를 2개씩 작성해 보세요." textarea />
+        <label className="block space-y-2">
+          <span className="text-sm font-semibold text-slate-800">이미지 첨부</span>
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-[24px] border border-dashed border-violet-200 bg-violet-50 px-4 py-4 text-sm font-medium text-violet-700">
+            <span className="inline-flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              과제 예시 이미지 업로드
+            </span>
+            <input
+              className="hidden"
+              onChange={(event) =>
+                setAttachmentName(event.target.files?.[0]?.name ?? '이미지 첨부 없음')
+              }
+              type="file"
+            />
+            <span className="text-xs text-violet-500">{attachmentName}</span>
+          </label>
+        </label>
         <div className="flex justify-end gap-3 pt-2">
           <button className={lineButton} onClick={() => setCreateOpen(false)} type="button">취소</button>
           <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setCreateOpen(false)} type="button">과제 초안 저장</button>
+        </div>
+      </OverlayPanel>
+
+      <OverlayPanel
+        open={batchOpen}
+        onClose={() => setBatchOpen(false)}
+        title="과제 일괄 생성"
+        description="같은 주제의 과제를 여러 반에 한 번에 배포하는 프론트 흐름입니다."
+      >
+        <Field label="적용 반" defaultValue="중급 A반, 초급 B반" />
+        <Field label="공통 마감일" defaultValue="2026-04-18" />
+        <Field label="과제 묶음 제목" defaultValue="4월 2주차 주간 과제 세트" />
+        <div className="space-y-3 rounded-[28px] bg-slate-50 p-4">
+          {['코딩 풀이 1개', '이미지 업로드 1개', '에세이형 질문 1개'].map((item) => (
+            <div key={item} className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700 ring-1 ring-slate-200">
+              {item}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3 pt-2">
+          <button className={lineButton} onClick={() => setBatchOpen(false)} type="button">취소</button>
+          <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setBatchOpen(false)} type="button">일괄 생성 저장</button>
         </div>
       </OverlayPanel>
     </div>
@@ -416,7 +628,7 @@ export function TeacherAssignmentDetailPage() {
         <div className="grid gap-4 md:grid-cols-3">
           <MetricCard label="제출 완료" value="8 / 12" detail="67% 진행" icon={NotebookPen} tone="indigo" />
           <MetricCard label="AI 사용" value="평균 2.1회" detail="과정 데이터 포함" icon={Sparkles} tone="violet" />
-          <MetricCard label="피드백 대기" value="4명" detail="검토 필요" icon={ClipboardCheck} tone="amber" />
+          <MetricCard label="피드백 대기" value="4명" detail="에세이 첨삭 검토 필요" icon={ClipboardCheck} tone="amber" />
         </div>
       </SurfaceCard>
 
@@ -462,7 +674,7 @@ export function TeacherAssignmentDetailPage() {
                         }}
                         type="button"
                       >
-                        피드백
+                        AI 첨삭
                       </button>
                     </div>
                   </td>
@@ -495,23 +707,12 @@ export function TeacherAssignmentDetailPage() {
         </div>
       </OverlayPanel>
 
-      <OverlayPanel
-        open={feedbackOpen}
+      <FeedbackPanel
+        assignmentTitle="Python 반복문 실습"
         onClose={() => setFeedbackOpen(false)}
-        title={`${selectedStudent.name} 피드백 작성`}
-        description="타임라인 확인과 별개로 피드백만 빠르게 작성하는 흐름을 따로 분리했습니다."
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <StatusBadge label={`상태 ${selectedStudent.status}`} tone={selectedStudent.status === '제출' ? 'emerald' : 'rose'} />
-          <StatusBadge label={`AI 사용 ${selectedStudent.aiUses}`} tone="violet" />
-        </div>
-        <Field label="피드백 제목" defaultValue="반복문 개념은 잘 이해했어요" />
-        <Field label="상세 피드백" defaultValue="for문과 while문의 차이를 예제로 다시 한 번 정리해 보면 더 좋아요. 다음 시간 전까지 리스트 컴프리헨션 예제를 한 개 더 풀어 보세요." textarea />
-        <div className="flex justify-end gap-3 pt-2">
-          <button className={lineButton} onClick={() => setFeedbackOpen(false)} type="button">취소</button>
-          <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setFeedbackOpen(false)} type="button">피드백 전송</button>
-        </div>
-      </OverlayPanel>
+        open={feedbackOpen}
+        studentName={selectedStudent.name}
+      />
     </div>
   )
 }
@@ -1096,19 +1297,23 @@ export function TeacherChurnPage() {
 
 export function TeacherProgressPage() {
   const chapters = [
-    { title: '중급 A반 · 반복문', progress: 72, detail: '예제 적용까지 완료' },
-    { title: '초급 B반 · CSS 레이아웃', progress: 54, detail: 'flex 기초 진행 중' },
-    { title: '중급 A반 · 리스트 컴프리헨션', progress: 38, detail: '다음 주 시작 예정' },
+    { title: '중급 A반 · 반복문', progress: 72, detail: '예제 적용까지 완료', stage: '2단계 · 반복문 응용', lesson: '2-3 리스트 컴프리헨션', note: '질문이 많아 실습 시간을 15분 늘렸습니다.' },
+    { title: '초급 B반 · CSS 레이아웃', progress: 54, detail: 'flex 기초 진행 중', stage: '1단계 · 웹 기초', lesson: '1-4 카드 레이아웃', note: '모바일 반응형 예시를 추가하면 좋아요.' },
+    { title: '중급 A반 · 리스트 컴프리헨션', progress: 38, detail: '다음 주 시작 예정', stage: '3단계 · 표현식 확장', lesson: '3-1 조건식 이해', note: '숙제 자동 생성 초안을 붙일 수 있습니다.' },
   ]
   const [selectedChapter, setSelectedChapter] = useState(chapters[0])
   const [recordOpen, setRecordOpen] = useState(false)
+  const [noteView, setNoteView] = useState<'리스트' | '캘린더'>('리스트')
+  const [autoAssign, setAutoAssign] = useState(true)
+  const weeks = ['4월 1주차', '4월 2주차', '4월 3주차']
+  const [weekIndex, setWeekIndex] = useState(1)
 
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="진도 관리"
         title="반별 진도 상태를 보고 바로 기록을 남길 수 있어요"
-        description="진도 카드에서 현재 진행 상태를 확인하고, 기록 패널에서 다음 수업 메모까지 이어서 남길 수 있습니다."
+        description="진도 카드, 수업 기록, 커리큘럼 차시 선택, 과제 자동 생성 체크까지 한 흐름으로 보강했습니다."
         backHref="/teacher/dashboard"
         backLabel="강사 홈"
         action={
@@ -1119,13 +1324,53 @@ export function TeacherProgressPage() {
         }
       />
 
+      <SurfaceCard>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {(['리스트', '캘린더'] as const).map((mode) => (
+              <button
+                key={mode}
+                className={cx(
+                  pillButton,
+                  noteView === mode ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20' : 'bg-white text-slate-600 ring-1 ring-slate-200',
+                )}
+                onClick={() => setNoteView(mode)}
+                type="button"
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button className={lineButton} onClick={() => setWeekIndex((current) => Math.max(0, current - 1))} type="button">이전 주</button>
+            <StatusBadge label={weeks[weekIndex]} tone="slate" />
+            <button className={lineButton} onClick={() => setWeekIndex((current) => Math.min(weeks.length - 1, current + 1))} type="button">다음 주</button>
+          </div>
+        </div>
+      </SurfaceCard>
+
+      {noteView === '캘린더' ? (
+        <div className="grid gap-4 md:grid-cols-3">
+          {chapters.map((chapter, index) => (
+            <SurfaceCard key={`${chapter.title}-${index}`}>
+              <StatusBadge label={chapter.stage} tone="violet" />
+              <h2 className="mt-4 text-2xl font-semibold text-slate-950">{chapter.lesson}</h2>
+              <p className="mt-2 text-sm text-slate-500">{chapter.title}</p>
+              <p className="mt-4 text-sm leading-6 text-slate-600">{chapter.note}</p>
+            </SurfaceCard>
+          ))}
+        </div>
+      ) : null}
+
       <div className="space-y-4">
         {chapters.map((chapter) => (
           <SurfaceCard key={chapter.title}>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
+                <StatusBadge label={chapter.stage} tone="violet" />
                 <h2 className="text-2xl font-semibold text-slate-950">{chapter.title}</h2>
                 <p className="mt-2 text-sm text-slate-500">{chapter.detail}</p>
+                <p className="mt-2 text-sm leading-6 text-slate-600">{chapter.lesson} · {chapter.note}</p>
               </div>
               <button className={lineButton} onClick={() => { setSelectedChapter(chapter); setRecordOpen(true) }} type="button">
                 기록 열기
@@ -1142,11 +1387,24 @@ export function TeacherProgressPage() {
         open={recordOpen}
         onClose={() => setRecordOpen(false)}
         title={`${selectedChapter.title} 진도 기록`}
-        description="현재 진도율과 다음 수업 메모를 같이 남길 수 있는 패널입니다."
+        description="현재 진도율, 수업 내용 기록, 커리큘럼 차시, 과제 자동 생성을 같이 정리하는 패널입니다."
       >
         <Field label="현재 진도" defaultValue={`${selectedChapter.progress}%`} />
+        <Field label="커리큘럼 차시" defaultValue={selectedChapter.lesson} />
         <Field label="이번 수업 메모" defaultValue={selectedChapter.detail} textarea />
+        <Field label="학생 반응 및 질문" defaultValue={selectedChapter.note} textarea />
         <Field label="다음 수업 계획" defaultValue="예제 2개를 더 다루고, 학생 질문 시간을 10분 확보합니다." textarea />
+        <button
+          className={cx(
+            'flex w-full items-center justify-between rounded-[24px] px-4 py-4 text-left text-sm font-medium transition',
+            autoAssign ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-100' : 'bg-slate-100 text-slate-600',
+          )}
+          onClick={() => setAutoAssign((current) => !current)}
+          type="button"
+        >
+          <span>과제 자동 생성 초안 만들기</span>
+          <span>{autoAssign ? 'ON' : 'OFF'}</span>
+        </button>
         <div className="flex justify-end gap-3 pt-2">
           <button className={lineButton} onClick={() => setRecordOpen(false)} type="button">취소</button>
           <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setRecordOpen(false)} type="button">진도 기록 저장</button>
