@@ -28,6 +28,8 @@ const navigation = [
   { href: '/teacher/bot', label: '질문봇', icon: Bot },
   { href: '/teacher/churn', label: '이탈 현황', icon: HeartPulse },
   { href: '/teacher/progress', label: '진도', icon: BookOpenText },
+  { href: '/teacher/reports', label: '보고서', icon: BookOpenText },
+  { href: '/teacher/memo', label: '메모', icon: NotebookPen },
 ]
 
 const notifications = [
