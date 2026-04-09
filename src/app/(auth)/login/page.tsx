@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FormEvent, useState, useTransition } from 'react'
+import { FormEvent, useMemo, useState, useTransition } from 'react'
 import { signIn } from 'next-auth/react'
 import {
   ArrowRight,
@@ -16,6 +16,11 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+type FieldErrors = {
+  email?: string
+  password?: string
+}
+
 const previewLinks = [
   { href: '/admin/dashboard', label: '운영자 화면 보기', tone: 'bg-indigo-600' },
   { href: '/teacher/dashboard', label: '강사 화면 보기', tone: 'bg-violet-600' },
@@ -23,12 +28,26 @@ const previewLinks = [
 ]
 
 const demoAccounts = [
-  { role: '운영자', email: 'admin@academind.kr' },
-  { role: '강사', email: 'teacher@academind.kr' },
-  { role: '수강생', email: 'student@academind.kr' },
+  { role: '운영자', email: 'admin@academind.kr', home: '/admin/dashboard' },
+  { role: '강사', email: 'teacher@academind.kr', home: '/teacher/dashboard' },
+  { role: '수강생', email: 'student@academind.kr', home: '/student/home' },
 ]
 
-export default function LoginPage() {
+function resolveRoleHome(email: string) {
+  if (email.includes('admin')) {
+    return '/admin/dashboard'
+  }
+
+  if (email.includes('teacher')) {
+    return '/teacher/dashboard'
+  }
+
+  return '/student/home'
+}
+
+import { Suspense } from 'react'
+
+function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const callbackUrl = searchParams.get('callbackUrl') ?? undefined
@@ -36,11 +55,46 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const [selectedRoleHint, setSelectedRoleHint] = useState<string>('')
   const [isPending, startTransition] = useTransition()
+
+  const todayLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat('ko-KR', {
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long',
+      }).format(new Date()),
+    [],
+  )
+
+  function validateFields() {
+    const nextErrors: FieldErrors = {}
+
+    if (!email.trim()) {
+      nextErrors.email = '이메일을 입력해 주세요.'
+    } else if (!email.includes('@')) {
+      nextErrors.email = '이메일 형식이 맞는지 확인해 주세요.'
+    }
+
+    if (!password.trim()) {
+      nextErrors.password = '비밀번호를 입력해 주세요.'
+    } else if (password.trim().length < 4) {
+      nextErrors.password = '비밀번호는 4자 이상 입력해 주세요.'
+    }
+
+    setFieldErrors(nextErrors)
+    return Object.keys(nextErrors).length === 0
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
+
+    if (!validateFields()) {
+      return
+    }
 
     startTransition(async () => {
       const result = await signIn('credentials', {
@@ -55,8 +109,23 @@ export default function LoginPage() {
         return
       }
 
-      router.push(result?.url ?? '/login')
+      const nextPath =
+        callbackUrl && !callbackUrl.startsWith('/login')
+          ? callbackUrl
+          : result?.url && !result.url.includes('/login')
+            ? result.url
+            : resolveRoleHome(email)
+
+      router.push(nextPath)
     })
+  }
+
+  function handleQuickFill(role: string, accountEmail: string, home: string) {
+    setSelectedRoleHint(`${role}로 로그인하면 ${home}으로 이동합니다.`)
+    setEmail(accountEmail)
+    setPassword('demo1234')
+    setFieldErrors({})
+    setErrorMessage('')
   }
 
   return (
@@ -79,7 +148,7 @@ export default function LoginPage() {
           <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
             Today
           </p>
-          <p className="mt-1 text-sm font-semibold text-slate-700">4월 8일 수요일</p>
+          <p className="mt-1 text-sm font-semibold text-slate-700">{todayLabel}</p>
         </div>
       </div>
 
@@ -113,7 +182,13 @@ export default function LoginPage() {
           <label className="text-sm font-medium text-slate-700" htmlFor="email">
             이메일
           </label>
-          <div className="flex h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 transition focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100">
+          <div
+            className={`flex h-14 items-center gap-3 rounded-2xl border bg-white px-4 transition focus-within:ring-4 ${
+              fieldErrors.email
+                ? 'border-red-200 focus-within:border-red-300 focus-within:ring-red-100'
+                : 'border-slate-200 focus-within:border-indigo-400 focus-within:ring-indigo-100'
+            }`}
+          >
             <Mail className="h-4 w-4 text-slate-400" />
             <input
               id="email"
@@ -121,12 +196,20 @@ export default function LoginPage() {
               autoComplete="email"
               autoFocus
               className="h-full w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                if (fieldErrors.email) {
+                  setFieldErrors((current) => ({ ...current, email: undefined }))
+                }
+              }}
               placeholder="name@academind.kr"
               type="email"
               value={email}
             />
           </div>
+          {fieldErrors.email ? (
+            <p className="text-sm font-medium text-red-600">{fieldErrors.email}</p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
@@ -145,14 +228,25 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <div className="flex h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 transition focus-within:border-indigo-400 focus-within:ring-4 focus-within:ring-indigo-100">
+          <div
+            className={`flex h-14 items-center gap-3 rounded-2xl border bg-white px-4 transition focus-within:ring-4 ${
+              fieldErrors.password
+                ? 'border-red-200 focus-within:border-red-300 focus-within:ring-red-100'
+                : 'border-slate-200 focus-within:border-indigo-400 focus-within:ring-indigo-100'
+            }`}
+          >
             <KeyRound className="h-4 w-4 text-slate-400" />
             <input
               id="password"
               aria-label="비밀번호"
               autoComplete="current-password"
               className="h-full w-full bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value)
+                if (fieldErrors.password) {
+                  setFieldErrors((current) => ({ ...current, password: undefined }))
+                }
+              }}
               placeholder="비밀번호를 입력해주세요"
               type={showPassword ? 'text' : 'password'}
               value={password}
@@ -166,6 +260,9 @@ export default function LoginPage() {
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
+          {fieldErrors.password ? (
+            <p className="text-sm font-medium text-red-600">{fieldErrors.password}</p>
+          ) : null}
         </div>
 
         <button
@@ -197,16 +294,16 @@ export default function LoginPage() {
             <button
               key={account.role}
               className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-              onClick={() => {
-                setEmail(account.email)
-                setPassword('demo1234')
-              }}
+              onClick={() => handleQuickFill(account.role, account.email, account.home)}
               type="button"
             >
               {account.role} 계정 채우기
             </button>
           ))}
         </div>
+        {selectedRoleHint ? (
+          <p className="mt-3 text-sm font-medium text-indigo-600">{selectedRoleHint}</p>
+        ) : null}
         <div className="mt-4 flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" />
           <p>
@@ -229,5 +326,13 @@ export default function LoginPage() {
         ))}
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
