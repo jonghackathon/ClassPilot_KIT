@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell,
@@ -30,7 +31,10 @@ export default function StudentLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [alarmOpen, setAlarmOpen] = useState(false)
+
+  const displayName = session?.user?.name?.replace(/님$/, '') ?? '민수'
 
   const todayLabel = useMemo(
     () =>
@@ -61,7 +65,7 @@ export default function StudentLayout({
                   <GraduationCap className="h-5 w-5" />
                 </div>
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-950">민수님의 학습 홈</p>
+                  <p className="font-semibold text-slate-950">{displayName}님의 학습 홈</p>
                   <p className="text-sm leading-6 text-slate-500">
                     오늘 해야 할 일부터 바로 확인해요
                   </p>

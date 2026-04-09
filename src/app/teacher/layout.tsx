@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   Bell,
@@ -41,8 +41,12 @@ export default function TeacherLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [alarmOpen, setAlarmOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+
+  const displayName = session?.user?.name ?? '박강사'
+  const displayEmail = session?.user?.email ?? 'teacher@academind.kr'
 
   const todayLabel = useMemo(
     () =>
@@ -101,7 +105,7 @@ export default function TeacherLayout({
                 type="button"
               >
                 <CircleUserRound className="h-5 w-5" />
-                <span className="hidden text-sm font-semibold sm:inline">박강사</span>
+                <span className="hidden text-sm font-semibold sm:inline">{displayName}</span>
               </button>
 
               {alarmOpen ? (
@@ -122,8 +126,8 @@ export default function TeacherLayout({
                 <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
                   <div className="rounded-[24px] bg-violet-600 px-4 py-4 text-white">
                     <p className="text-xs uppercase tracking-[0.22em] text-violet-100">Teacher</p>
-                    <p className="mt-2 text-lg font-semibold">박강사</p>
-                    <p className="mt-2 text-sm text-violet-100">오늘은 중급 A반과 초급 B반 수업이 있어요.</p>
+                    <p className="mt-2 text-lg font-semibold">{displayName}</p>
+                    <p className="mt-2 text-sm text-violet-100">{displayEmail}</p>
                   </div>
                   <div className="mt-4 space-y-2">
                     <Link href="/teacher/dashboard" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">

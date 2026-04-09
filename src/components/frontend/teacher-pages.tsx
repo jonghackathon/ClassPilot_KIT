@@ -399,6 +399,7 @@ export function TeacherAssignmentDetailPage() {
   ]
   const [selectedStudent, setSelectedStudent] = useState<AssignmentRow>(rows[0])
   const [detailOpen, setDetailOpen] = useState(false)
+  const [feedbackOpen, setFeedbackOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -442,16 +443,28 @@ export function TeacherAssignmentDetailPage() {
                   <td className="py-4 text-slate-600">{row.submittedAt}</td>
                   <td className="py-4 text-slate-600">{row.historyCount}</td>
                   <td className="py-4 text-right">
-                    <button
-                      className="text-sm font-semibold text-indigo-600"
-                      onClick={() => {
-                        setSelectedStudent(row)
-                        setDetailOpen(true)
-                      }}
-                      type="button"
-                    >
-                      이력 보기
-                    </button>
+                    <div className="flex justify-end gap-3">
+                      <button
+                        className="text-sm font-semibold text-indigo-600"
+                        onClick={() => {
+                          setSelectedStudent(row)
+                          setDetailOpen(true)
+                        }}
+                        type="button"
+                      >
+                        이력 보기
+                      </button>
+                      <button
+                        className="text-sm font-semibold text-violet-600"
+                        onClick={() => {
+                          setSelectedStudent(row)
+                          setFeedbackOpen(true)
+                        }}
+                        type="button"
+                      >
+                        피드백
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -479,6 +492,24 @@ export function TeacherAssignmentDetailPage() {
         <div className="flex justify-end gap-3 pt-2">
           <button className={lineButton} onClick={() => setDetailOpen(false)} type="button">닫기</button>
           <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setDetailOpen(false)} type="button">피드백 저장</button>
+        </div>
+      </OverlayPanel>
+
+      <OverlayPanel
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        title={`${selectedStudent.name} 피드백 작성`}
+        description="타임라인 확인과 별개로 피드백만 빠르게 작성하는 흐름을 따로 분리했습니다."
+      >
+        <div className="grid gap-3 sm:grid-cols-2">
+          <StatusBadge label={`상태 ${selectedStudent.status}`} tone={selectedStudent.status === '제출' ? 'emerald' : 'rose'} />
+          <StatusBadge label={`AI 사용 ${selectedStudent.aiUses}`} tone="violet" />
+        </div>
+        <Field label="피드백 제목" defaultValue="반복문 개념은 잘 이해했어요" />
+        <Field label="상세 피드백" defaultValue="for문과 while문의 차이를 예제로 다시 한 번 정리해 보면 더 좋아요. 다음 시간 전까지 리스트 컴프리헨션 예제를 한 개 더 풀어 보세요." textarea />
+        <div className="flex justify-end gap-3 pt-2">
+          <button className={lineButton} onClick={() => setFeedbackOpen(false)} type="button">취소</button>
+          <button className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')} onClick={() => setFeedbackOpen(false)} type="button">피드백 전송</button>
         </div>
       </OverlayPanel>
     </div>
@@ -674,6 +705,7 @@ export function TeacherRecordingPage() {
   ]
   const [selectedId, setSelectedId] = useState(recordings[0].id)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [selectedFileName, setSelectedFileName] = useState('선택된 파일 없음')
 
   const selectedRecording = recordings.find((recording) => recording.id === selectedId) ?? recordings[0]
 
@@ -719,12 +751,29 @@ export function TeacherRecordingPage() {
             <p className="text-sm font-medium text-slate-300">선택된 녹음</p>
             <p className="mt-2 text-2xl font-semibold">{selectedRecording.title}</p>
             <p className="mt-3 text-sm text-slate-300">상태: {selectedRecording.status}</p>
+            <p className="mt-2 text-sm text-slate-300">파일: {selectedFileName}</p>
           </div>
           <div className="mt-5">
             <ProgressBar value={uploadProgress} tone={uploadProgress >= 100 ? 'emerald' : 'violet'} />
             <p className="mt-3 text-sm text-slate-500">업로드 진행률 {uploadProgress}%</p>
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
+            <label className={lineButton}>
+              <FileAudio2 className="h-4 w-4" />
+              파일 선택
+              <input
+                className="hidden"
+                onChange={(event) => {
+                  const nextFile = event.target.files?.[0]
+                  if (!nextFile) {
+                    return
+                  }
+                  setSelectedFileName(nextFile.name)
+                  setUploadProgress(0)
+                }}
+                type="file"
+              />
+            </label>
             <button
               className={cx(filledButton, 'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20')}
               onClick={() => setUploadProgress((current) => (current >= 100 ? 0 : Math.min(current + 40, 100)))}

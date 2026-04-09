@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   AlertTriangle,
@@ -45,9 +45,14 @@ export default function AdminLayout({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
+  const { data: session } = useSession()
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [alarmOpen, setAlarmOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const displayName = session?.user?.name ?? '운영 관리자'
+  const displayEmail = session?.user?.email ?? 'admin@academind.kr'
 
   const todayLabel = useMemo(
     () =>
@@ -127,15 +132,20 @@ export default function AdminLayout({
                 </button>
                 <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Operations</p>
-                  <p className="mt-1 truncate text-sm font-semibold text-slate-800">운영 관리자 · {todayLabel}</p>
+                  <p className="mt-1 truncate text-sm font-semibold text-slate-800">{displayName} · {todayLabel}</p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500 sm:min-w-[320px]">
+                <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500 sm:min-w-[320px]">
                   <Search className="h-4 w-4" />
-                  학생, 반, 결제, 민원 검색
-                </div>
+                  <input
+                    className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="학생, 반, 결제, 민원을 검색해 보세요"
+                    value={searchQuery}
+                  />
+                </label>
 
                 <div className="relative flex items-center gap-3 self-end sm:self-auto">
                   <button
@@ -160,7 +170,7 @@ export default function AdminLayout({
                     <p className="text-xs uppercase tracking-[0.22em] text-slate-400">
                       Operations
                     </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-800">운영 관리자</p>
+                    <p className="mt-1 text-sm font-semibold text-slate-800">{displayName}</p>
                   </button>
 
                   {alarmOpen ? (
@@ -186,8 +196,8 @@ export default function AdminLayout({
                     <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
                       <div className="rounded-[24px] bg-slate-950 px-4 py-4 text-white">
                         <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Workspace</p>
-                        <p className="mt-2 text-lg font-semibold">운영 관리자</p>
-                        <p className="mt-2 text-sm text-slate-300">오늘 일정과 리스크를 먼저 확인해 주세요.</p>
+                        <p className="mt-2 text-lg font-semibold">{displayName}</p>
+                        <p className="mt-2 text-sm text-slate-300">{displayEmail}</p>
                       </div>
                       <div className="mt-4 space-y-2">
                         <Link href="/admin/dashboard" className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900">

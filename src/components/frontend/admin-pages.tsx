@@ -1147,6 +1147,7 @@ export function AdminPaymentsPage() {
 export function AdminChurnPage() {
   const [selectedStudent, setSelectedStudent] = useState(churnRows[0])
   const [contactOpen, setContactOpen] = useState(false)
+  const [eventOpen, setEventOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -1186,6 +1187,16 @@ export function AdminChurnPage() {
                   <Phone className="h-4 w-4" />
                   연락 기록
                 </button>
+                <button
+                  className={cx(secondaryButton, 'border-rose-200 text-rose-600 hover:border-rose-300')}
+                  onClick={() => {
+                    setSelectedStudent(student)
+                    setEventOpen(true)
+                  }}
+                  type="button"
+                >
+                  이탈 처리
+                </button>
               </div>
               <div className="mt-5">
                 <ProgressBar value={student.score} tone={student.tone} />
@@ -1208,6 +1219,9 @@ export function AdminChurnPage() {
             <button className={cx(primaryButton, 'w-full bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setContactOpen(true)} type="button">
               {selectedStudent.name} 연락 패널 열기
             </button>
+            <button className={cx(secondaryButton, 'w-full border-rose-200 text-rose-600 hover:border-rose-300')} onClick={() => setEventOpen(true)} type="button">
+              {selectedStudent.name} 이탈 처리 열기
+            </button>
           </div>
         </SurfaceCard>
       </div>
@@ -1224,6 +1238,21 @@ export function AdminChurnPage() {
         <div className="flex justify-end gap-3 pt-2">
           <button className={secondaryButton} onClick={() => setContactOpen(false)} type="button">닫기</button>
           <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setContactOpen(false)} type="button">조치 기록 저장</button>
+        </div>
+      </OverlayPanel>
+
+      <OverlayPanel
+        open={eventOpen}
+        onClose={() => setEventOpen(false)}
+        title={`${selectedStudent.name} 이탈 처리`}
+        description="휴원, 퇴원, 보류 같은 처리 상태를 프론트에서 먼저 정리할 수 있게 연결했습니다."
+      >
+        <Field label="처리 구분" placeholder="휴원 검토" />
+        <Field label="예정일" placeholder="2026-04-16" />
+        <Field label="처리 메모" placeholder="학부모와 이번 주 상담 후 2주 휴원 여부를 다시 확인하기로 했습니다." textarea />
+        <div className="flex justify-end gap-3 pt-2">
+          <button className={secondaryButton} onClick={() => setEventOpen(false)} type="button">취소</button>
+          <button className={cx(primaryButton, 'bg-gradient-to-r from-rose-500 to-orange-500 shadow-rose-500/20')} onClick={() => setEventOpen(false)} type="button">이탈 처리 저장</button>
         </div>
       </OverlayPanel>
     </div>
