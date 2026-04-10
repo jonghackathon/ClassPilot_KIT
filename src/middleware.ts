@@ -1,11 +1,48 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-export function middleware(request: NextRequest) {
-  // TODO: 개발 완료 후 인증 로직 활성화
+import { auth } from '@/lib/auth'
+
+export default auth((request) => {
+  const pathname = request.nextUrl.pathname
+  const role = request.auth?.user?.role
+  const isLoggedIn = Boolean(request.auth)
+
+  if (pathname === '/login') {
+    if (!isLoggedIn) {
+      return NextResponse.next()
+    }
+
+    if (role === 'ADMIN') {
+      return NextResponse.redirect(new URL('/admin/dashboard', request.url))
+    }
+
+    if (role === 'TEACHER') {
+      return NextResponse.redirect(new URL('/teacher/dashboard', request.url))
+    }
+
+    return NextResponse.redirect(new URL('/student/home', request.url))
+  }
+
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
+  if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (pathname.startsWith('/teacher') && role !== 'TEACHER' && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
+  if (pathname.startsWith('/student') && role !== 'STUDENT' && role !== 'ADMIN') {
+    return NextResponse.redirect(new URL('/', request.url))
+  }
+
   return NextResponse.next()
-}
+})
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/login', '/admin/:path*', '/teacher/:path*', '/student/:path*'],
 }
