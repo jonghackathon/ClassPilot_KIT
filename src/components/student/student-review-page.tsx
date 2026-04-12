@@ -2,13 +2,12 @@
 
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
-import useSWR from 'swr'
 import { ArrowRight, Sparkles } from 'lucide-react'
 
 import { ActionButton, PageHero, SectionHeading, StatusBadge, SurfaceCard, cx } from '@/components/frontend/common'
-import { fetcher } from '@/lib/fetcher'
+import { useReview } from '@/hooks/useReview'
 
-import { formatKoreanDate, type ApiEnvelope, type PaginatedData, unwrapItems } from './student-data'
+import { formatKoreanDate, unwrapItems } from './student-data'
 
 type ReviewItem = {
   id: string
@@ -19,10 +18,7 @@ type ReviewItem = {
 }
 
 export function StudentReviewPage() {
-  const { data, error, isLoading } = useSWR<ApiEnvelope<PaginatedData<ReviewItem>>>(
-    '/api/reviews?limit=100',
-    fetcher,
-  )
+  const { data, error, isLoading } = useReview<ReviewItem>('limit=100')
   const [filter, setFilter] = useState<'all' | 'unread'>('unread')
   const items = unwrapItems(data)
 

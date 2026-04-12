@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import useSWR, { mutate } from 'swr'
-import { ArrowRight, MessageCircleQuestion, Send } from 'lucide-react'
+import useSWR from 'swr'
+import { ArrowRight, MessageCircleQuestion, Send, ThumbsDown, ThumbsUp } from 'lucide-react'
 
 import { ActionButton, PageHero, SectionHeading, StatusBadge, SurfaceCard, cx } from '@/components/frontend/common'
 import { apiRequest, fetcher } from '@/lib/fetcher'
+import { useQnA } from '@/hooks/useQnA'
 
 import { formatKoreanDateTime, type ApiEnvelope, type PaginatedData, unwrapItems } from './student-data'
 
@@ -37,11 +38,7 @@ export function StudentQnaPage() {
     '/api/assignments?limit=100',
     fetcher,
   )
-  const { data, error, isLoading } = useSWR<ApiEnvelope<PaginatedData<QnaItem>>>(
-    '/api/qna?limit=100',
-    fetcher,
-  )
-
+  const { data, error, isLoading, mutate } = useQnA<QnaItem>('limit=100')
   const assignments = unwrapItems(assignmentsResponse)
   const items = unwrapItems(data)
 
@@ -58,6 +55,7 @@ export function StudentQnaPage() {
   const [selectedClassId, setSelectedClassId] = useState('')
   const [question, setQuestion] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [feedbackingId, setFeedbackingId] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
@@ -131,7 +129,7 @@ export function StudentQnaPage() {
                   })
                   setQuestion('')
                   setNotice('질문이 등록되었어요.')
-                  await mutate('/api/qna?limit=100')
+                  await mutate()
                 } finally {
                   setSubmitting(false)
                 }
@@ -168,6 +166,60 @@ export function StudentQnaPage() {
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 {item.teacherAnswer ?? item.aiAnswer ?? '답변 대기 중'}
               </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  className={cx(
+                    'inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+                    item.helpful === true
+                      ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20'
+                      : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:border-emerald-200 hover:text-emerald-700',
+                  )}
+                  disabled={feedbackingId === item.id}
+                  onClick={async () => {
+                    setFeedbackingId(item.id)
+                    try {
+                      await apiRequest(`/api/qna/${item.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ helpful: true }),
+                      })
+                      setNotice('도움 됨으로 표시했어요.')
+                      await mutate()
+                    } finally {
+                      setFeedbackingId(null)
+                    }
+                  }}
+                  type="button"
+                >
+                  <ThumbsUp className="h-4 w-4" />
+                  도움 됨
+                </button>
+                <button
+                  className={cx(
+                    'inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50',
+                    item.helpful === false
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/20'
+                      : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:border-rose-200 hover:text-rose-700',
+                  )}
+                  disabled={feedbackingId === item.id}
+                  onClick={async () => {
+                    setFeedbackingId(item.id)
+                    try {
+                      await apiRequest(`/api/qna/${item.id}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ helpful: false }),
+                      })
+                      setNotice('추가 설명이 필요하다고 표시했어요.')
+                      await mutate()
+                    } finally {
+                      setFeedbackingId(null)
+                    }
+                  }}
+                  type="button"
+                >
+                  <ThumbsDown className="h-4 w-4" />
+                  아니요
+                </button>
+              </div>
               <div className="mt-4 flex items-center justify-between gap-3">
                 <span className="text-xs text-slate-500">{formatKoreanDateTime(item.createdAt)}</span>
                 <ArrowRight className="h-4 w-4 text-slate-400" />
