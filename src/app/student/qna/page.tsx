@@ -1,4 +1,4 @@
-import { StudentQnaPage } from '@/components/frontend/student-pages'
+import { StudentQnaPage } from '@/components/student/student-qna-page'
 
 export default function Page() {
   return <StudentQnaPage />
