@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useUsers(query = '') {
-  return useSWR(`/api/users${query}`)
+export function useUsers<T = unknown>(query = '') {
+  return useSWR<T>(`/api/users${query}`)
 }

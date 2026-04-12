@@ -1,7 +1,18 @@
 import { z } from 'zod'
 
+const nullableDateString = z
+  .string()
+  .optional()
+  .nullable()
+  .refine((value) => {
+    if (!value) {
+      return true
+    }
+
+    return !Number.isNaN(new Date(value).getTime())
+  }, '유효한 날짜를 입력해 주세요.')
+
 export const userCreateSchema = z.object({
-  academyId: z.string().cuid(),
   email: z.string().email(),
   password: z.string().min(4),
   name: z.string().min(2),
@@ -9,14 +20,14 @@ export const userCreateSchema = z.object({
   phone: z.string().optional().nullable(),
   grade: z.string().optional().nullable(),
   school: z.string().optional().nullable(),
-  birthDate: z.string().datetime().optional().nullable(),
+  birthDate: nullableDateString,
   memo: z.string().optional().nullable(),
   parentName: z.string().optional().nullable(),
   parentPhone: z.string().optional().nullable(),
 })
 
 export const userUpdateSchema = userCreateSchema
-  .omit({ academyId: true, password: true })
+  .omit({ password: true })
   .partial()
 
 export const parentCreateSchema = z.object({

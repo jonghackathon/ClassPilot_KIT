@@ -85,6 +85,20 @@ export async function GET(request: Request) {
             parents: true,
           },
         },
+        attendances: {
+          select: {
+            status: true,
+          },
+        },
+        churnPredictions: {
+          orderBy: [{ calculatedAt: 'desc' }, { createdAt: 'desc' }],
+          take: 1,
+          select: {
+            level: true,
+            score: true,
+            calculatedAt: true,
+          },
+        },
         enrollments: {
           where: { active: true },
           include: {

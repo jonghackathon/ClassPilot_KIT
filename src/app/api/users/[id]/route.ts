@@ -41,9 +41,73 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
         },
       },
       enrollments: {
+        where: {
+          active: true,
+        },
         include: {
           class: true,
         },
+      },
+      attendances: {
+        include: {
+          class: {
+            select: {
+              id: true,
+              name: true,
+              subject: true,
+            },
+          },
+        },
+        orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+        take: 30,
+      },
+      submissions: {
+        include: {
+          assignment: {
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              class: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ submittedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 20,
+      },
+      studentConsultations: {
+        include: {
+          owner: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      },
+      payments: {
+        include: {
+          class: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+        orderBy: [{ month: 'desc' }, { createdAt: 'desc' }],
+        take: 12,
+      },
+      churnPredictions: {
+        orderBy: [{ calculatedAt: 'desc' }, { createdAt: 'desc' }],
+        take: 5,
       },
     },
   })
