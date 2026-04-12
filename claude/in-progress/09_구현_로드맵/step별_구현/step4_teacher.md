@@ -30,8 +30,8 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/curricula/route.ts` | GET (목록), POST (생성) |
-| 2 | `src/app/api/curricula/[id]/route.ts` | PATCH (수정), DELETE |
+| 1 | `src/app/api/curriculum/route.ts` | GET (목록), POST (생성) |
+| 2 | `src/app/api/curriculum/[id]/route.ts` | PATCH (수정), DELETE |
 | 3 | `src/hooks/useCurriculum.ts` | SWR wrapper |
 | 4 | `src/lib/validations/curriculum.ts` | Zod 스키마 |
 
@@ -63,9 +63,9 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/ai/bot/faq/route.ts` | GET, POST |
-| 2 | `src/app/api/ai/bot/faq/[id]/route.ts` | PATCH, DELETE |
-| 3 | `src/app/api/ai/bot/questions/[id]/answer/route.ts` | POST — 강사 답변 |
+| 1 | `src/app/api/bot-faq/route.ts` | GET, POST |
+| 2 | `src/app/api/bot-faq/[id]/route.ts` | PATCH, DELETE |
+| 3 | `src/app/api/bot-questions/[id]/answer/route.ts` | POST — 강사 답변 |
 
 **화면 연결:** `teacher/bot` — 질문 목록, 강사 답변 전송, FAQ 등록
 
@@ -95,3 +95,4 @@
 - 강사가 과제 출제, 피드백 작성, 커리큘럼 편집, 진도 관리, 메모 작성 가능
 - FAQ 봇 데이터 관리
 - `teacher/dashboard` 하드코딩 → 실제 API 연동
+- `teacher/reports` 페이지 인벤토리 반영 및 연동 검토

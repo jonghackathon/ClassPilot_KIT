@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useClasses(query = '') {
-  return useSWR(`/api/classes${query}`)
+export function useClasses<T = unknown>(query = '') {
+  return useSWR<T>(`/api/classes${query}`)
 }

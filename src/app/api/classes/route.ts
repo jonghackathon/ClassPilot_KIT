@@ -86,6 +86,11 @@ export async function GET(request: Request) {
                 id: true,
                 name: true,
                 email: true,
+                studentProfile: {
+                  select: {
+                    grade: true,
+                  },
+                },
               },
             },
           },
