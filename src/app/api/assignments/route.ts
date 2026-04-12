@@ -42,13 +42,23 @@ export async function GET(request: NextRequest) {
       include: {
         class: { select: { id: true, name: true, subject: true } },
         teacher: { select: { id: true, name: true, email: true } },
-        submissions: {
-          select: {
-            id: true,
-            status: true,
-            teacherFeedback: true,
-          },
-        },
+        submissions:
+          session.user.role === 'STUDENT'
+            ? {
+                where: { studentId: session.user.id },
+                select: {
+                  id: true,
+                  status: true,
+                  teacherFeedback: true,
+                },
+              }
+            : {
+                select: {
+                  id: true,
+                  status: true,
+                  teacherFeedback: true,
+                },
+              },
       },
     }),
   ])

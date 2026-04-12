@@ -35,6 +35,10 @@ type AssignmentItem = {
   dueDate: string | null
   class: { id: string; name: string }
   teacher: { id: string; name: string }
+  submissions?: Array<{
+    id: string
+    status: 'DRAFT' | 'SUBMITTED' | 'REVIEWED'
+  }>
 }
 
 type ReviewItem = {
@@ -94,9 +98,13 @@ export function StudentHomePage() {
   const reviews = unwrapItems(reviewsResponse)
   const qnaItems = unwrapItems(qnaResponse)
   const attendance = unwrapItems(attendanceResponse)
+  const pendingAssignments = assignments.filter((item) => {
+    const latestSubmission = item.submissions?.[0]
+    return !latestSubmission || latestSubmission.status === 'DRAFT'
+  })
 
   const currentClass = assignments[0]?.class.name ?? '내 수업'
-  const nextAssignment = assignments.find((item) => item.dueDate) ?? assignments[0]
+  const nextAssignment = pendingAssignments.find((item) => item.dueDate) ?? pendingAssignments[0]
   const latestReview = reviews[0]
   const latestQuestion = qnaItems[0]
   const attendanceTotal = attendance.length
@@ -130,7 +138,7 @@ export function StudentHomePage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           label="남은 과제"
-          value={`${assignments.length}건`}
+          value={`${pendingAssignments.length}건`}
           detail={nextAssignment ? `${nextAssignment.title} · ${formatKoreanDate(nextAssignment.dueDate)}` : '새 과제를 기다리고 있어요'}
           icon={NotebookPen}
           tone="amber"
@@ -166,8 +174,8 @@ export function StudentHomePage() {
         <SurfaceCard>
           <SectionHeading title="지금 확인하면 좋은 과제" subtitle="마감이 가까운 과제를 앞에 배치했습니다." action={<ActionButton href="/student/assignments" label="전체 보기" tone="amber" />} />
           <div className="mt-5 space-y-3">
-            {assignments.length ? (
-              assignments.slice(0, 3).map((item) => (
+            {pendingAssignments.length ? (
+              pendingAssignments.slice(0, 3).map((item) => (
                 <Link key={item.id} href={`/student/assignments/${item.id}`} className="block rounded-[28px] border border-slate-200 bg-white px-5 py-5 transition hover:border-indigo-200">
                   <div className="flex items-start justify-between gap-4">
                     <div>
@@ -184,7 +192,7 @@ export function StudentHomePage() {
                 </Link>
               ))
             ) : (
-              <p className="rounded-[24px] bg-slate-50 px-5 py-6 text-sm text-slate-500">현재 보여줄 과제가 없어요.</p>
+              <p className="rounded-[24px] bg-slate-50 px-5 py-6 text-sm text-slate-500">남은 과제가 없어요.</p>
             )}
           </div>
         </SurfaceCard>
