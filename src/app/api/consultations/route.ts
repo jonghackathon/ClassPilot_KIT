@@ -1,4 +1,4 @@
-import { paginatedResponse, successResponse } from '@/lib/api-response'
+import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
 import { parseRequestBody, searchContains } from '@/lib/route-helpers'
 import { consultationCreateSchema } from '@/lib/validations/consultations'
@@ -99,10 +99,14 @@ export async function POST(request: Request) {
     return validationError
   }
 
+  if (session.user.role === 'ADMIN' && !data.ownerId) {
+    return errorResponse('VALIDATION', '상담 담당자를 선택해 주세요.', 400)
+  }
+
   const created = await prisma.consultation.create({
     data: {
       studentId: data.studentId,
-      ownerId: session.user.role === 'TEACHER' ? session.user.id : data.ownerId,
+      ownerId: session.user.role === 'TEACHER' ? session.user.id : data.ownerId!,
       type: data.type,
       content: data.content,
     },

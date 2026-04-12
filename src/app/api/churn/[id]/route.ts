@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/db'
+import { getTeacherStudentIds } from '@/lib/access-scope'
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { parseRequestBody } from '@/lib/route-helpers'
 import { churnUpdateSchema } from '@/lib/validations/churn'
@@ -32,6 +33,31 @@ function studentSelect() {
   }
 }
 
+async function getScopedWhere(
+  id: string,
+  sessionUser: { academyId: string; role: string; id: string },
+) {
+  if (sessionUser.role === 'TEACHER') {
+    const teacherStudentIds = await getTeacherStudentIds(sessionUser.id)
+    return {
+      id,
+      student: {
+        academyId: sessionUser.academyId,
+      },
+      studentId: {
+        in: teacherStudentIds,
+      },
+    }
+  }
+
+  return {
+    id,
+    student: {
+      academyId: sessionUser.academyId,
+    },
+  }
+}
+
 export async function GET(_request: Request, { params }: { params: Params }) {
   const authResult = await withAuth(['ADMIN', 'TEACHER'])
 
@@ -47,14 +73,10 @@ export async function GET(_request: Request, { params }: { params: Params }) {
 
   try {
     const { id } = await params
+    const where = await getScopedWhere(id, session.user)
 
     const item = await prisma.churnPrediction.findFirst({
-      where: {
-        id,
-        student: {
-          academyId: session.user.academyId,
-        },
-      },
+      where,
       include: {
         student: {
           select: studentSelect(),
@@ -100,12 +122,7 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     }
 
     const existing = await prisma.churnPrediction.findFirst({
-      where: {
-        id,
-        student: {
-          academyId: session.user.academyId,
-        },
-      },
+      where: await getScopedWhere(id, session.user),
       select: { id: true },
     })
 
@@ -165,12 +182,7 @@ export async function DELETE(_request: Request, { params }: { params: Params }) 
     const { id } = await params
 
     const existing = await prisma.churnPrediction.findFirst({
-      where: {
-        id,
-        student: {
-          academyId: session.user.academyId,
-        },
-      },
+      where: await getScopedWhere(id, session.user),
       select: { id: true },
     })
 
