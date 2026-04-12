@@ -1,5 +1,5 @@
-import { AdminPaymentsPage } from '@/components/frontend/admin-pages'
+import { AdminPaymentsManagerPage } from '@/components/admin/admin-payments-manager'
 
 export default function Page() {
-  return <AdminPaymentsPage />
+  return <AdminPaymentsManagerPage />
 }

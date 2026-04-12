@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function usePayments(query = '') {
-  return useSWR(`/api/payments${query}`)
+export function usePayments<T = unknown>(query = '') {
+  return useSWR<T>(`/api/payments${query}`)
 }
