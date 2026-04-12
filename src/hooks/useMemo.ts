@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useMemoData(query = '') {
-  return useSWR(`/api/memo${query}`)
+export function useMemoData<T = unknown>(query = '') {
+  return useSWR<T>(`/api/memo${query}`)
 }

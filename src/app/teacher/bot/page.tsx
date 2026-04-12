@@ -1,5 +1,5 @@
-import { TeacherBotPage } from '@/components/frontend/teacher-pages'
+import { TeacherBotManager } from '@/components/teacher/bot/teacher-bot-manager'
 
 export default function Page() {
-  return <TeacherBotPage />
+  return <TeacherBotManager />
 }
