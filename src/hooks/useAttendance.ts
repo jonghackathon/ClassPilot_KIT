@@ -1,9 +1,8 @@
 import useSWR from 'swr'
 
-export function useAttendance<T = unknown>(query?: string | null) {
-  if (query === null) {
-    return useSWR<T>(null)
-  }
+import { fetcher } from '@/lib/fetcher'
 
-  return useSWR<T>(`/api/attendance${query ?? ''}`)
+export function useAttendance<T = unknown>(query: string | null = '') {
+  const key = query === null ? null : `/api/attendance${query}`
+  return useSWR<T>(key, fetcher)
 }
