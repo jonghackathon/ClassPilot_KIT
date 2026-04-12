@@ -149,7 +149,7 @@ export default function Page() {
             {riskStudents.map((student) => (
               <Link
                 key={student.name}
-                href="/admin/students/kim-minsu"
+                href="/admin/students"
                 className="block rounded-[26px] border border-rose-100 bg-white p-5 shadow-sm"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
