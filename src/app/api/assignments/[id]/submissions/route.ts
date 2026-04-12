@@ -99,6 +99,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return errorResponse('VALIDATION', '제출 데이터가 올바르지 않습니다.', 400, parsed.error.flatten())
   }
 
+  const nextStatus = parsed.data.status ?? 'SUBMITTED'
+  const submittedAt = nextStatus === 'SUBMITTED' ? new Date() : null
+
   const studentId =
     session.user.role === 'STUDENT'
       ? session.user.id
@@ -127,16 +130,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
       attachments: parsed.data.attachments ?? [],
       aiUsed: parsed.data.aiUsed ?? false,
       aiUsageDetail: parsed.data.aiUsageDetail ?? null,
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
+      status: nextStatus,
+      submittedAt,
     },
     update: {
       content: parsed.data.content ?? null,
       attachments: parsed.data.attachments ?? [],
       aiUsed: parsed.data.aiUsed ?? false,
       aiUsageDetail: parsed.data.aiUsageDetail ?? null,
-      status: 'SUBMITTED',
-      submittedAt: new Date(),
+      status: nextStatus,
+      submittedAt,
     },
     include: {
       student: { select: { id: true, name: true, email: true } },

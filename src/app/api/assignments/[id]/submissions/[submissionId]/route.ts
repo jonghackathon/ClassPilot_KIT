@@ -106,6 +106,16 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
               parsedSubmission.data.aiUsageDetail !== undefined
                 ? parsedSubmission.data.aiUsageDetail ?? null
                 : undefined,
+            status:
+              parsedSubmission.data.status !== undefined
+                ? parsedSubmission.data.status
+                : undefined,
+            submittedAt:
+              parsedSubmission.data.status !== undefined
+                ? parsedSubmission.data.status === 'SUBMITTED'
+                  ? new Date()
+                  : null
+                : undefined,
           }
         : {}),
       ...(parsedFeedback.success
@@ -121,6 +131,23 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       history: { orderBy: { createdAt: 'desc' } },
     },
   })
+
+  if (
+    parsedSubmission.success &&
+    session.user.role === 'STUDENT' &&
+    (parsedSubmission.data.content !== undefined ||
+      parsedSubmission.data.attachments !== undefined ||
+      parsedSubmission.data.status !== undefined)
+  ) {
+    await prisma.submissionHistory.create({
+      data: {
+        submissionId: updated.id,
+        content: updated.content ?? '',
+        attachments: updated.attachments ?? [],
+        charCount: (updated.content ?? '').length,
+      },
+    })
+  }
 
   return successResponse(updated)
 }
