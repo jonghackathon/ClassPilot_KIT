@@ -1,5 +1,5 @@
-import { AdminSchedulePage } from '@/components/frontend/admin-pages'
+import { AdminScheduleManagerPage } from '@/components/admin/admin-schedule-manager'
 
 export default function Page() {
-  return <AdminSchedulePage />
+  return <AdminScheduleManagerPage />
 }

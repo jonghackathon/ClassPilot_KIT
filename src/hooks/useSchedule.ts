@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useSchedule(query = '') {
-  return useSWR(`/api/schedule${query}`)
+export function useSchedule<T = unknown>(query = '') {
+  return useSWR<T>(`/api/schedule${query}`)
 }
