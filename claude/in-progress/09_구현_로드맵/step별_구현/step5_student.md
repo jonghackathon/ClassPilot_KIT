@@ -19,8 +19,8 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/assignments/[id]/submit/route.ts` | POST — 과제 제출 |
-| 2 | `src/app/api/assignments/[id]/submit/history/route.ts` | POST (자동저장), GET (이력 조회) |
+| 1 | `src/app/api/assignments/[id]/submissions/route.ts` | POST — 과제 제출/자동저장 |
+| 2 | `src/app/api/assignments/[id]/submissions/[submissionId]/route.ts` | GET, PATCH — 제출 상세/후속 처리 |
 | 3 | `src/lib/validations/submission.ts` | Zod 스키마 |
 
 **화면 연결:** `student/assignments`, `student/assignments/[id]`
@@ -29,7 +29,7 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/students/attendance/route.ts` | GET — 본인 출석 (월별) |
+| 1 | `src/app/api/attendance/route.ts` | GET — 본인 출석 (role / query 기반 조회) |
 
 **화면 연결:** `student/attendance` — 달력 월 이동
 
@@ -37,8 +37,8 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/ai/review/route.ts` | GET — 복습 목록 |
-| 2 | `src/app/api/ai/review/[id]/read/route.ts` | PATCH — 읽음 처리 |
+| 1 | `src/app/api/reviews/route.ts` | GET — 복습 목록 |
+| 2 | `src/app/api/reviews/[id]/route.ts` | PATCH — 읽음 처리 |
 | 3 | `src/hooks/useReview.ts` | SWR wrapper |
 | 4 | `src/lib/validations/review.ts` | Zod 스키마 |
 
@@ -48,7 +48,7 @@
 
 | # | 파일 | 작업 |
 |---|------|------|
-| 1 | `src/app/api/ai/bot/questions/route.ts` | GET (목록), POST (질문 전송) |
+| 1 | `src/app/api/qna/route.ts` | GET (목록), POST (질문 전송) |
 | 2 | `src/hooks/useQnA.ts` | SWR wrapper |
 | 3 | `src/lib/validations/qna.ts` | Zod 스키마 |
 

@@ -1,7 +1,7 @@
 # hooks/store 구현 계획
 
-**현재 상태:** `src/hooks/` 비어 있음, `src/store/` 비어 있음
-**목표:** SWR 기반 hooks 10+개, Zustand store 3+개
+**현재 상태:** `src/hooks/`에는 SWR hook 13개가 이미 있고, `src/store/useAppStore.ts`도 존재
+**목표:** 기존 hook/store를 새로 만들기보다 시그니처와 사용 위치를 표준화
 
 ---
 
@@ -56,9 +56,9 @@ export function useAttendance(classId: string, date: string) {
 
 | Store | 파일 | 용도 |
 |-------|------|------|
-| `useAuthStore` | `src/store/authStore.ts` | 세션 사용자 정보 클라이언트 캐시 |
-| `useUIStore` | `src/store/uiStore.ts` | 모달 open/close 전역 상태 |
-| `useCopilotStore` | `src/store/copilotStore.ts` | 코파일럿 세션 + 카드 상태 |
+| `useAppStore` | `src/store/useAppStore.ts` | 현재 반 / 사이드바 / 코파일럿 UI 상태 |
+| `useUIStore` | `src/store/uiStore.ts` | 필요 시 모달 open/close 전역 상태 추가 |
+| `useCopilotStore` | `src/store/copilotStore.ts` | 필요 시 코파일럿 세션 상태 분리 |
 
 ---
 
@@ -86,16 +86,16 @@ export const useUIStore = create<UIStore>((set) => ({
 ## 현재 설정된 인프라
 
 - `src/app/providers.tsx` — `SWRConfig` 글로벌 설정 완료
-- `src/lib/fetcher.ts` — Step 2에서 생성 예정
+- `src/lib/fetcher.ts` — 이미 존재
 
 ---
 
 ## 구현 순서
 
-1. **Step 2:** `useAttendance` + `fetcher.ts` (패턴 확립)
-2. **Step 3:** Admin 관련 hooks 7개 (패턴 복제)
-3. **Step 3:** `useUIStore` 추가 (모달 상태 관리 필요 시)
-4. **Step 4:** Teacher 관련 hooks 4개
-5. **Step 5:** Student 관련 hooks 2개
+1. **Step 2:** `useAttendance` 표준화 + attendance 화면 연결
+2. **Step 3:** Admin 관련 hooks를 실제 UI 컴포넌트에 연결
+3. **Step 3:** `useUIStore` 추가는 모달 상태가 실제로 전역화될 때만
+4. **Step 4:** Teacher 관련 hooks 연결
+5. **Step 5:** Student 관련 hooks 연결
 6. **Step 6:** `useCopilot` (SSE 전용 로직)
 7. **Step 7:** `useNotifications`

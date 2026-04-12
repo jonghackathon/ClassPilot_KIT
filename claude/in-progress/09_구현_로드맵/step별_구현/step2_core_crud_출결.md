@@ -1,6 +1,6 @@
 # Step 2: Core CRUD 패턴 확립 (출결 full cycle)
 
-**선행 조건:** Step 0 (Prisma schema) + Step 1 (인증) 완료
+**선행 조건:** Step 1 기반 점검 완료
 **작업 항목 수:** 9개
 **예상 소요:** 1.5일
 
@@ -20,15 +20,15 @@ DB 모델 → API Route → SWR Hook → UI 모달
 
 | # | 작업 | 파일 | 설명 |
 |---|------|------|------|
-| 1 | Fetcher 유틸 | `src/lib/fetcher.ts` | SWR용 표준 fetcher |
-| 2 | API 응답 헬퍼 | `src/lib/api-response.ts` | `{ success, data, error }` 포맷 |
-| 3 | Zod 스키마 | `src/lib/validations/attendance.ts` | 입력 검증 |
+| 1 | Fetcher 유틸 점검 | `src/lib/fetcher.ts` | 기존 fetcher 재사용 여부 확인 |
+| 2 | API 응답 헬퍼 점검 | `src/lib/api-response.ts` | `{ success, data, error }` 포맷 유지 |
+| 3 | Zod 스키마 점검 | `src/lib/validations/attendance.ts` | 입력 검증 보강 |
 | 4 | API: GET 목록 | `src/app/api/attendance/route.ts` | 날짜+반 기준 조회 |
 | 5 | API: POST 생성 | `src/app/api/attendance/route.ts` | 개별 출결 입력 |
 | 6 | API: POST 일괄 | `src/app/api/attendance/bulk/route.ts` | 전체출석 일괄 처리 |
 | 7 | API: PATCH/DELETE | `src/app/api/attendance/[id]/route.ts` | 출결 수정/삭제 |
-| 8 | SWR Hook | `src/hooks/useAttendance.ts` | SWR wrapper |
-| 9 | UI 연결 | `src/app/teacher/attendance/page.tsx` | 실데이터 + 모달 연결 |
+| 8 | SWR Hook | `src/hooks/useAttendance.ts` | 기존 hook 시그니처 표준화 |
+| 9 | UI 연결 | `src/components/frontend/teacher-pages.tsx` | 실데이터 + 모달 연결 |
 
 ---
 
