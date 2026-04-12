@@ -1,5 +1,5 @@
-import { AdminTeachersPage } from '@/components/frontend/admin-pages'
+import { AdminTeachersManagerPage } from '@/components/admin/admin-teachers-manager'
 
 export default function Page() {
-  return <AdminTeachersPage />
+  return <AdminTeachersManagerPage />
 }

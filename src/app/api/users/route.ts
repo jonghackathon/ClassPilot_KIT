@@ -7,10 +7,16 @@ import { userCreateSchema } from '@/lib/validations/users'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
 export async function GET(request: Request) {
-  const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
+  const authResult = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
-    return error
+  if (authResult.error) {
+    return authResult.error
+  }
+
+  const { session } = authResult
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   const { searchParams, page, limit, skip } = getPageParams(request)
@@ -80,6 +86,18 @@ export async function GET(request: Request) {
     prisma.user.findMany({
       where,
       include: {
+        taughtClasses: {
+          include: {
+            class: {
+              select: {
+                id: true,
+                name: true,
+                subject: true,
+                level: true,
+              },
+            },
+          },
+        },
         studentProfile: {
           include: {
             parents: true,
@@ -117,16 +135,26 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const { session, error } = await withAuth(['ADMIN'])
+  const authResult = await withAuth(['ADMIN'])
 
-  if (error || !session) {
-    return error
+  if (authResult.error) {
+    return authResult.error
+  }
+
+  const { session } = authResult
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   const { data, error: validationError } = await parseRequestBody(request, userCreateSchema)
 
-  if (validationError || !data) {
+  if (validationError) {
     return validationError
+  }
+
+  if (!data) {
+    return errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400)
   }
 
   const exists = await prisma.user.findUnique({
