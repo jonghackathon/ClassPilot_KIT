@@ -1,6 +1,8 @@
 export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT'
 
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT'
+export type HomeworkStatus = 'COMPLETE' | 'INCOMPLETE'
+export type AssignmentType = 'CODING' | 'ESSAY' | 'IMAGE'
 
 export type SubmissionStatus = 'SUBMITTED' | 'NOT_SUBMITTED' | 'LATE_SUBMIT'
 
@@ -32,4 +34,12 @@ export interface ApiResponse<T> {
     code: string
     message: string
   }
+}
+
+export interface SessionUser {
+  id: string
+  academyId: string
+  role: UserRole
+  email?: string | null
+  name?: string | null
 }
