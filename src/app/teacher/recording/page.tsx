@@ -1,0 +1,5 @@
+import { TeacherRecordingPage } from '@/components/frontend/teacher-pages'
+
+export default function Page() {
+  return <TeacherRecordingPage />
+}
