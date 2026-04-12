@@ -11,17 +11,24 @@ export async function GET(request: NextRequest) {
   if (error || !session) return error
 
   const { searchParams, page, limit, skip } = getPageParams(request)
-  const studentId =
+  const requestedStudentId =
     session.user.role === 'STUDENT'
       ? session.user.id
       : searchParams.get('studentId') ?? undefined
   const teacherStudentIds =
     session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
+  const studentIdFilter =
+    session.user.role === 'TEACHER'
+      ? requestedStudentId
+        ? teacherStudentIds.includes(requestedStudentId)
+          ? requestedStudentId
+          : { in: [] as string[] }
+        : { in: teacherStudentIds }
+      : requestedStudentId
 
   const where: Record<string, unknown> = {
     student: { academyId: session.user.academyId },
-    ...(session.user.role === 'TEACHER' ? { studentId: { in: teacherStudentIds } } : {}),
-    ...(studentId ? { studentId } : {}),
+    ...(studentIdFilter ? { studentId: studentIdFilter } : {}),
   }
 
   const [total, items] = await Promise.all([
@@ -50,6 +57,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
   if (error || !session) return error
+  const teacherStudentIds =
+    session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
 
   const body = await request.json().catch(() => null)
   if (!body) {

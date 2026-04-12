@@ -63,6 +63,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
   if (error || !session) return error
+  const teacherClassIds =
+    session.user.role === 'TEACHER' ? await getTeacherClassIds(session.user.id) : []
+  const teacherStudentIds =
+    session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
 
   const body = await request.json().catch(() => null)
   if (!body) {
@@ -80,8 +84,8 @@ export async function POST(request: NextRequest) {
   const data = parsed.data
   if (
     session.user.role === 'TEACHER' &&
-    data.classId &&
-    !teacherClassIds.includes(data.classId)
+    ((data.classId && !teacherClassIds.includes(data.classId)) ||
+      !teacherStudentIds.includes(data.studentId))
   ) {
     return errorResponse('FORBIDDEN', '담당 반 질문만 등록할 수 있습니다.', 403)
   }

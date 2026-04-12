@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import { CheckCircle2, Sparkles } from 'lucide-react'
 
@@ -24,6 +24,72 @@ type ReviewDetail = {
   quiz: unknown
   lesson: { id: string; date: string; topic: string | null } | null
   student: { id: string; name: string; email: string } | null
+}
+
+function ReviewQuizCarousel({ quizItems }: { quizItems: ReviewQuizItem[] }) {
+  const [activeQuizIndex, setActiveQuizIndex] = useState(0)
+  const activeQuiz = quizItems[activeQuizIndex] ?? null
+
+  if (!activeQuiz) {
+    return (
+      <p className="rounded-[24px] bg-slate-50 px-5 py-6 text-sm text-slate-500">
+        퀴즈 데이터가 없어서 요약 중심으로만 보여주고 있어요.
+      </p>
+    )
+  }
+
+  return (
+    <div className="rounded-[28px] bg-violet-50 px-5 py-5">
+      <div className="flex items-start gap-3">
+        <Sparkles className="mt-1 h-5 w-5 text-violet-600" />
+        <div className="flex-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="font-semibold text-slate-950">
+              {activeQuiz.question ?? `퀴즈 ${activeQuizIndex + 1}`}
+            </p>
+            <StatusBadge label={`${activeQuizIndex + 1}/${quizItems.length}`} tone="violet" />
+          </div>
+          {activeQuiz.choices?.length ? (
+            <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+              {activeQuiz.choices.map((choice) => (
+                <li
+                  key={choice}
+                  className="rounded-2xl bg-white px-4 py-3 ring-1 ring-violet-100"
+                >
+                  {choice}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {activeQuiz.explanation ? (
+            <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-violet-700 ring-1 ring-violet-100">
+              {activeQuiz.explanation}
+            </p>
+          ) : null}
+          <div className="mt-4 flex flex-wrap justify-between gap-3">
+            <button
+              className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activeQuizIndex === 0}
+              onClick={() => setActiveQuizIndex((current) => Math.max(0, current - 1))}
+              type="button"
+            >
+              이전 문제
+            </button>
+            <button
+              className="inline-flex items-center justify-center rounded-2xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={activeQuizIndex >= quizItems.length - 1}
+              onClick={() =>
+                setActiveQuizIndex((current) => Math.min(quizItems.length - 1, current + 1))
+              }
+              type="button"
+            >
+              다음 문제
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function StudentReviewDetailPage({ reviewId }: { reviewId: string }) {
@@ -87,36 +153,7 @@ export function StudentReviewDetailPage({ reviewId }: { reviewId: string }) {
       <SurfaceCard>
         <SectionHeading title="복습 퀴즈" subtitle="원본 quiz 데이터가 배열이면 카드로 보여줍니다." />
         <div className="mt-5 space-y-3">
-          {quizItems.length ? (
-            quizItems.map((item, index) => (
-              <div key={`${item.question ?? 'quiz'}-${index}`} className="rounded-[28px] bg-violet-50 px-5 py-5">
-                <div className="flex items-start gap-3">
-                  <Sparkles className="mt-1 h-5 w-5 text-violet-600" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-950">{item.question ?? `퀴즈 ${index + 1}`}</p>
-                    {item.choices?.length ? (
-                      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
-                        {item.choices.map((choice) => (
-                          <li key={choice} className="rounded-2xl bg-white px-4 py-3 ring-1 ring-violet-100">
-                            {choice}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {item.explanation ? (
-                      <p className="mt-3 rounded-2xl bg-white px-4 py-3 text-sm leading-6 text-violet-700 ring-1 ring-violet-100">
-                        {item.explanation}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="rounded-[24px] bg-slate-50 px-5 py-6 text-sm text-slate-500">
-              퀴즈 데이터가 없어서 요약 중심으로만 보여주고 있어요.
-            </p>
-          )}
+          <ReviewQuizCarousel key={review?.id ?? 'empty'} quizItems={quizItems} />
         </div>
       </SurfaceCard>
 
