@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useComplaints(query = '') {
-  return useSWR(`/api/complaints${query}`)
+export function useComplaints<T = unknown>(query = '') {
+  return useSWR<T>(`/api/complaints${query}`)
 }

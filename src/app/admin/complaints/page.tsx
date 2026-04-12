@@ -1,5 +1,5 @@
-import { AdminComplaintsPage } from '@/components/frontend/admin-pages'
+import { AdminComplaintsManagerPage } from '@/components/admin/admin-complaints-manager'
 
 export default function Page() {
-  return <AdminComplaintsPage />
+  return <AdminComplaintsManagerPage />
 }
