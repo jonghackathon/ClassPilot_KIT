@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 export const classCreateSchema = z.object({
-  academyId: z.string().cuid(),
   curriculumId: z.string().cuid().optional().nullable(),
   name: z.string().min(1),
   subject: z.string().optional().nullable(),
@@ -10,7 +9,7 @@ export const classCreateSchema = z.object({
   capacity: z.number().int().min(1).max(100),
 })
 
-export const classUpdateSchema = classCreateSchema.omit({ academyId: true }).partial()
+export const classUpdateSchema = classCreateSchema.partial()
 
 export const scheduleCreateSchema = z.object({
   classId: z.string().cuid(),

@@ -51,6 +51,13 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
               id: true,
               name: true,
               email: true,
+              phone: true,
+              studentProfile: {
+                select: {
+                  grade: true,
+                  school: true,
+                },
+              },
             },
           },
         },

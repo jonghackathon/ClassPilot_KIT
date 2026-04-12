@@ -182,7 +182,7 @@ export default function Page() {
             </div>
             <div className="mt-5 space-y-3">
               {todayClasses.map((lesson) => (
-                <Link key={lesson.time} href="/admin/classes/math-a" className="block rounded-[24px] bg-slate-50 px-4 py-4">
+                <Link key={lesson.time} href="/admin/classes" className="block rounded-[24px] bg-slate-50 px-4 py-4">
                   <div className="flex items-center justify-between">
                     <p className="font-semibold text-slate-900">{lesson.title}</p>
                     <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500">
@@ -207,7 +207,7 @@ export default function Page() {
               {assignments.map((item) => (
                 <Link
                   key={`${item.group}-${item.title}`}
-                  href="/admin/classes/math-a"
+                  href="/admin/classes"
                   className="block rounded-[24px] border border-slate-200 bg-white px-4 py-4"
                 >
                   <div className="flex items-center justify-between gap-3">
