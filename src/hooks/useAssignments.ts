@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useAssignments(query = '') {
-  return useSWR(`/api/assignments${query}`)
+export function useAssignments<T = unknown>(query = '') {
+  return useSWR<T>(`/api/assignments${query}`)
 }

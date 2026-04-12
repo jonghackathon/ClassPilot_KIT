@@ -40,8 +40,15 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        class: { select: { id: true, name: true } },
+        class: { select: { id: true, name: true, subject: true } },
         teacher: { select: { id: true, name: true, email: true } },
+        submissions: {
+          select: {
+            id: true,
+            status: true,
+            teacherFeedback: true,
+          },
+        },
       },
     }),
   ])
@@ -86,8 +93,15 @@ export async function POST(request: NextRequest) {
       dueDate: data.dueDate ? new Date(data.dueDate) : null,
     },
     include: {
-      class: { select: { id: true, name: true } },
+      class: { select: { id: true, name: true, subject: true } },
       teacher: { select: { id: true, name: true, email: true } },
+      submissions: {
+        select: {
+          id: true,
+          status: true,
+          teacherFeedback: true,
+        },
+      },
     },
   })
 
