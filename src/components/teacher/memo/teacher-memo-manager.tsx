@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Archive, NotebookPen, Search, Save, Sparkles, Star, X } from 'lucide-react'
 
 import { apiRequest } from '@/lib/fetcher'
@@ -118,19 +118,13 @@ export function TeacherMemoManager() {
 
   const classesResponse = useClasses<{ data?: { items?: Array<{ id: string; name: string }> } }>()
   const classes = classesResponse.data?.data?.items ?? []
-
-  useEffect(() => {
-    if (!selectedClassId && classes[0]?.id) {
-      setSelectedClassId(classes[0].id)
-      setDraft((current) => ({ ...current, classId: classes[0].id }))
-    }
-  }, [classes, selectedClassId])
+  const effectiveClassId = selectedClassId || classes[0]?.id || ''
 
   const memoQuery = useMemo(() => {
     const params = new URLSearchParams()
 
-    if (selectedClassId) {
-      params.set('classId', selectedClassId)
+    if (effectiveClassId) {
+      params.set('classId', effectiveClassId)
     }
 
     if (selectedCategory !== '전체') {
@@ -143,7 +137,7 @@ export function TeacherMemoManager() {
 
     const value = params.toString()
     return value ? `?${value}` : ''
-  }, [selectedClassId, selectedCategory, showArchived])
+  }, [effectiveClassId, selectedCategory, showArchived])
 
   const memoResponse = useMemoData<{ data?: { items?: MemoItem[] } }>(memoQuery)
   const memoItems = memoResponse.data?.data?.items ?? []
@@ -177,12 +171,12 @@ export function TeacherMemoManager() {
             content: item.content ?? '',
             category: item.category ?? 'NOTICE',
             targetName: item.targetName ?? '',
-            classId: item.classId ?? selectedClassId,
+            classId: item.classId ?? effectiveClassId,
             archived: item.archived ?? false,
           }
         : {
             ...emptyDraft,
-            classId: selectedClassId,
+            classId: effectiveClassId,
           },
     )
     setDialogOpen(true)
@@ -308,7 +302,7 @@ export function TeacherMemoManager() {
                 setSelectedClassId(event.target.value)
                 setDraft((current) => ({ ...current, classId: event.target.value }))
               }}
-              value={selectedClassId}
+              value={effectiveClassId}
             >
               {classes.map((item) => (
                 <option key={item.id} value={item.id}>

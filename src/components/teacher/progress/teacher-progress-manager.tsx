@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { BookOpenText, CalendarClock, Layers3, Plus, Save, Target, X } from 'lucide-react'
 
 import { apiRequest } from '@/lib/fetcher'
@@ -186,24 +186,17 @@ export function TeacherProgressManager() {
 
   const classesResponse = useClasses<{ data?: { items?: Array<{ id: string; name: string }> } }>()
   const curriculumResponse = useCurriculum<{ data?: { items?: CurriculumItem[] } }>()
-  const notesResponse = useProgress<{ data?: { items?: WeekNoteItem[] } }>(
-    selectedClassId ? `?classId=${selectedClassId}` : '',
-  )
-
   const classes = classesResponse.data?.data?.items ?? []
+  const effectiveClassId = selectedClassId || classes[0]?.id || ''
+  const notesResponse = useProgress<{ data?: { items?: WeekNoteItem[] } }>(
+    effectiveClassId ? `?classId=${effectiveClassId}` : '',
+  )
   const curriculumItems = curriculumResponse.data?.data?.items ?? []
   const weekNotes = notesResponse.data?.data?.items ?? []
 
-  useEffect(() => {
-    if (!selectedClassId && classes[0]?.id) {
-      setSelectedClassId(classes[0].id)
-      setNoteDraft((current) => ({ ...current, classId: classes[0].id }))
-    }
-  }, [classes, selectedClassId])
-
   const selectedClass = useMemo(
-    () => classes.find((item) => item.id === selectedClassId) ?? classes[0] ?? null,
-    [classes, selectedClassId],
+    () => classes.find((item) => item.id === effectiveClassId) ?? classes[0] ?? null,
+    [classes, effectiveClassId],
   )
 
   const curriculumCount = curriculumItems.length
@@ -232,7 +225,7 @@ export function TeacherProgressManager() {
     setNoteDraft(
       item
         ? {
-            classId: item.classId ?? selectedClassId,
+            classId: item.classId ?? effectiveClassId,
             date: formatDateTimeLocal(item.date),
             content: item.content ?? '',
             studentReaction: item.studentReaction ?? '',
@@ -242,7 +235,7 @@ export function TeacherProgressManager() {
           }
         : {
             ...emptyWeekNoteDraft,
-            classId: selectedClassId,
+            classId: effectiveClassId,
           },
     )
     setNoteModalOpen(true)
@@ -409,7 +402,7 @@ export function TeacherProgressManager() {
                 setSelectedClassId(event.target.value)
                 setNoteDraft((current) => ({ ...current, classId: event.target.value }))
               }}
-              value={selectedClassId}
+              value={effectiveClassId}
             >
               {classes.map((item) => (
                 <option key={item.id} value={item.id}>
@@ -666,7 +659,7 @@ export function TeacherProgressManager() {
                 setNoteDraft((current) => ({ ...current, classId: nextClassId }))
                 setSelectedClassId(nextClassId)
               }}
-              value={noteDraft.classId}
+              value={noteDraft.classId || effectiveClassId}
             >
               {classes.map((item) => (
                 <option key={item.id} value={item.id}>
