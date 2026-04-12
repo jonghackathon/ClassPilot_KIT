@@ -1,5 +1,5 @@
-import { TeacherAssignmentsPage } from '@/components/frontend/teacher-pages'
+import { TeacherAssignmentsManagerPage } from '@/components/assignments/teacher-assignments-manager'
 
 export default function Page() {
-  return <TeacherAssignmentsPage />
+  return <TeacherAssignmentsManagerPage />
 }
