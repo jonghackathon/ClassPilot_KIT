@@ -1,5 +1,5 @@
-import { TeacherProgressPage } from '@/components/frontend/teacher-pages'
+import { TeacherProgressManager } from '@/components/teacher/progress/teacher-progress-manager'
 
 export default function Page() {
-  return <TeacherProgressPage />
+  return <TeacherProgressManager />
 }

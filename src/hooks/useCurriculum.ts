@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useCurriculum(query = '') {
-  return useSWR(`/api/curriculum${query}`)
+export function useCurriculum<T = unknown>(query = '') {
+  return useSWR<T>(`/api/curriculum${query}`)
 }
