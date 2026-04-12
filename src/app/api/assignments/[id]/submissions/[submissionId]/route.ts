@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     where: { id: submissionId, assignmentId },
     include: {
       student: { select: { id: true, name: true, email: true } },
-      assignment: { select: { id: true, title: true, type: true } },
+      assignment: { select: { id: true, title: true, type: true, classId: true } },
       history: { orderBy: { createdAt: 'desc' } },
     },
   })

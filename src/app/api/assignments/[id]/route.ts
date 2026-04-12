@@ -18,7 +18,15 @@ export async function GET(_request: NextRequest, context: RouteContext) {
   const assignment = await prisma.assignment.findUnique({
     where: { id },
     include: {
-      class: { select: { id: true, name: true, academyId: true } },
+      class: {
+        select: {
+          id: true,
+          name: true,
+          subject: true,
+          level: true,
+          academyId: true,
+        },
+      },
       teacher: { select: { id: true, name: true, email: true } },
       submissions:
         session.user.role === 'STUDENT'

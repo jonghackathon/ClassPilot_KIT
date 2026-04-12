@@ -1,5 +1,5 @@
 import useSWR from 'swr'
 
-export function useProgress(query = '') {
-  return useSWR(`/api/week-notes${query}`)
+export function useProgress<T = unknown>(query = '') {
+  return useSWR<T>(`/api/week-notes${query}`)
 }
