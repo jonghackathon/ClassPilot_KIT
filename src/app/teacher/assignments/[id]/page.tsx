@@ -1,5 +1,11 @@
-import { TeacherAssignmentDetailPage } from '@/components/frontend/teacher-pages'
+import { TeacherAssignmentDetailManagerPage } from '@/components/assignments/teacher-assignments-manager'
 
-export default function Page() {
-  return <TeacherAssignmentDetailPage />
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  return <TeacherAssignmentDetailManagerPage assignmentId={id} />
 }

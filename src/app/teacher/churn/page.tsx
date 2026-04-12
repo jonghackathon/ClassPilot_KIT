@@ -1,5 +1,5 @@
-import { TeacherChurnPage } from '@/components/frontend/teacher-pages'
+import { TeacherChurnManager } from '@/components/teacher/teacher-churn-manager'
 
 export default function Page() {
-  return <TeacherChurnPage />
+  return <TeacherChurnManager />
 }

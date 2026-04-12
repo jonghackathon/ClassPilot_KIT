@@ -1,5 +1,5 @@
-import { StudentAttendancePage } from '@/components/frontend/student-pages'
+import { StudentAttendanceManager } from './student-attendance-manager'
 
 export default function Page() {
-  return <StudentAttendancePage />
+  return <StudentAttendanceManager />
 }

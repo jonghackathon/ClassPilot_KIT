@@ -1,4 +1,5 @@
 import { errorResponse, paginatedResponse } from '@/lib/api-response'
+import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
 import { searchContains } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
@@ -6,7 +7,7 @@ import { getPageParams, withAuth } from '@/lib/with-auth'
 const churnLevels = new Set(['SAFE', 'WARNING', 'DANGER'] as const)
 
 export async function GET(request: Request) {
-  const { session, error } = await withAuth(['ADMIN'])
+  const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
   if (error) {
     return error
@@ -20,6 +21,23 @@ export async function GET(request: Request) {
   const level = searchParams.get('level')
   const studentId = searchParams.get('studentId')
   const keyword = searchParams.get('q')
+  let accessibleStudentIds: string[] | undefined
+
+  if (session.user.role === 'TEACHER') {
+    const teacherStudentIds = await getTeacherStudentIds(session.user.id)
+
+    if (teacherStudentIds.length === 0) {
+      return paginatedResponse([], 0, page, limit)
+    }
+
+    accessibleStudentIds = studentId
+      ? teacherStudentIds.filter((item) => item === studentId)
+      : teacherStudentIds
+
+    if (accessibleStudentIds.length === 0) {
+      return paginatedResponse([], 0, page, limit)
+    }
+  }
 
   const where = {
     student: {
@@ -33,10 +51,11 @@ export async function GET(request: Request) {
           }
         : {}),
     },
+    ...(accessibleStudentIds ? { studentId: { in: accessibleStudentIds } } : {}),
     ...(level && churnLevels.has(level as 'SAFE' | 'WARNING' | 'DANGER')
       ? { level: level as 'SAFE' | 'WARNING' | 'DANGER' }
       : {}),
-    ...(studentId ? { studentId } : {}),
+    ...(session.user.role === 'ADMIN' && studentId ? { studentId } : {}),
   }
 
   const [items, total] = await prisma.$transaction([

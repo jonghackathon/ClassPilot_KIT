@@ -18,6 +18,7 @@ export const submissionSchema = z.object({
   attachments: z.array(z.string().url()).optional(),
   aiUsed: z.boolean().optional(),
   aiUsageDetail: z.string().optional().nullable(),
+  status: z.enum(['DRAFT', 'SUBMITTED']).optional(),
 })
 
 export const feedbackSchema = z.object({
