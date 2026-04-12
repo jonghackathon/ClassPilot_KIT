@@ -1,13 +1,19 @@
-import { paginatedResponse } from '@/lib/api-response'
+import { errorResponse, paginatedResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
 import { searchContains } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
+const churnLevels = new Set(['SAFE', 'WARNING', 'DANGER'] as const)
+
 export async function GET(request: Request) {
   const { session, error } = await withAuth(['ADMIN'])
 
-  if (error || !session) {
+  if (error) {
     return error
+  }
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   const { searchParams, page, limit, skip } = getPageParams(request)
@@ -27,7 +33,9 @@ export async function GET(request: Request) {
           }
         : {}),
     },
-    ...(level ? { level: level as 'LOW' | 'MEDIUM' | 'HIGH' } : {}),
+    ...(level && churnLevels.has(level as 'SAFE' | 'WARNING' | 'DANGER')
+      ? { level: level as 'SAFE' | 'WARNING' | 'DANGER' }
+      : {}),
     ...(studentId ? { studentId } : {}),
   }
 
@@ -40,6 +48,24 @@ export async function GET(request: Request) {
             id: true,
             name: true,
             email: true,
+            studentProfile: {
+              select: {
+                grade: true,
+              },
+            },
+            enrollments: {
+              where: {
+                active: true,
+              },
+              select: {
+                class: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },

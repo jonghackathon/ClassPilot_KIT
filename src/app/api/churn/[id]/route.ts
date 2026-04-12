@@ -1,14 +1,48 @@
 import { prisma } from '@/lib/db'
 import { errorResponse, successResponse } from '@/lib/api-response'
+import { parseRequestBody } from '@/lib/route-helpers'
+import { churnUpdateSchema } from '@/lib/validations/churn'
 import { withAuth } from '@/lib/with-auth'
 
 type Params = Promise<{ id: string }>
 
-export async function GET(_request: Request, { params }: { params: Params }) {
-  const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
+function studentSelect() {
+  return {
+    id: true,
+    name: true,
+    email: true,
+    studentProfile: {
+      select: {
+        grade: true,
+      },
+    },
+    enrollments: {
+      where: {
+        active: true,
+      },
+      select: {
+        class: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+    },
+  }
+}
 
-  if (error || !session?.user) {
-    return error
+export async function GET(_request: Request, { params }: { params: Params }) {
+  const authResult = await withAuth(['ADMIN', 'TEACHER'])
+
+  if (authResult.error) {
+    return authResult.error
+  }
+
+  const { session } = authResult
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   try {
@@ -23,11 +57,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
       },
       include: {
         student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
+          select: studentSelect(),
         },
       },
     })
@@ -45,20 +75,28 @@ export async function GET(_request: Request, { params }: { params: Params }) {
 }
 
 export async function PATCH(request: Request, { params }: { params: Params }) {
-  const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
+  const authResult = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
-    return error
+  if (authResult.error) {
+    return authResult.error
+  }
+
+  const { session } = authResult
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   try {
     const { id } = await params
-    const body = (await request.json()) as {
-      level?: 'LOW' | 'MEDIUM' | 'HIGH'
-      score?: number
-      factors?: unknown
-      note?: string | null
-      resolved?: boolean
+    const { data, error: validationError } = await parseRequestBody(request, churnUpdateSchema)
+
+    if (validationError) {
+      return validationError
+    }
+
+    if (!data) {
+      return errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400)
     }
 
     const existing = await prisma.churnPrediction.findFirst({
@@ -78,13 +116,27 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     const updated = await prisma.churnPrediction.update({
       where: { id },
       data: {
-        ...(body.level ? { level: body.level } : {}),
-        ...(typeof body.score === 'number'
-          ? { score: Math.max(0, Math.min(100, body.score)) }
+        ...(data.level ? { level: data.level } : {}),
+        ...(typeof data.score === 'number'
+          ? { score: Math.max(0, Math.min(100, data.score)) }
           : {}),
-        ...(body.factors !== undefined ? { factors: body.factors } : {}),
-        ...(body.note !== undefined ? { note: body.note } : {}),
-        ...(body.resolved !== undefined ? { resolved: body.resolved } : {}),
+        ...(typeof data.attendanceFactor === 'number'
+          ? { attendanceFactor: Math.max(0, Math.min(100, data.attendanceFactor)) }
+          : {}),
+        ...(typeof data.homeworkFactor === 'number'
+          ? { homeworkFactor: Math.max(0, Math.min(100, data.homeworkFactor)) }
+          : {}),
+        ...(typeof data.accessFactor === 'number'
+          ? { accessFactor: Math.max(0, Math.min(100, data.accessFactor)) }
+          : {}),
+        ...(typeof data.questionFactor === 'number'
+          ? { questionFactor: Math.max(0, Math.min(100, data.questionFactor)) }
+          : {}),
+      },
+      include: {
+        student: {
+          select: studentSelect(),
+        },
       },
     })
 
@@ -97,10 +149,16 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
 }
 
 export async function DELETE(_request: Request, { params }: { params: Params }) {
-  const { session, error } = await withAuth(['ADMIN'])
+  const authResult = await withAuth(['ADMIN'])
 
-  if (error || !session?.user) {
-    return error
+  if (authResult.error) {
+    return authResult.error
+  }
+
+  const { session } = authResult
+
+  if (!session?.user) {
+    return errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401)
   }
 
   try {
