@@ -45,15 +45,15 @@ npm install @anthropic-ai/sdk openai
 
 ## 전체 AI 기능 맵
 
-| # | 기능 | 트리거 | 모델 | 저장 필드 | 현재 route 상태 | 현재 화면 상태 |
-|---|------|--------|------|---------|--------------|-------------|
-| 6-1 | AI Copilot | 교사 수업 중 질문 | Claude JSON MVP | `CopilotQuestion` | 있음, 전면 재작성 필요 | 하드코딩 |
-| 6-2 | 에세이 피드백 | 교사 피드백 초안 요청 | Claude | `Submission.teacherFeedback` | 없음, 신규 | 버튼 없음 |
-| 6-3 | 성장 리포트 | 어드민/교사 월별 생성 | Claude | `ReportData` | **있음**, AI 호출만 연결 | 하드코딩 |
-| 6-4 | Whisper 녹음 변환 | 교사 음성 파일 업로드 | Whisper+Claude | `RecordingSummary` | 있음, 전면 재작성 필요 | 하드코딩 |
-| 6-5 | 복습 자동 생성 | 교사 수업 후 생성 | Claude | `ReviewSummary` | 없음, 신규 | 버튼 없음 |
-| 6-6 | 이탈 예측 배치 | Vercel Cron 일1회 | 규칙 기반 | `ChurnPrediction` | 없음, 신규 | 화면 있음 |
-| 6-7 | 민원 AI 초안 | 어드민 민원 응답 전 | Claude | `Complaint.aiDraft` | 없음, 신규 | 버튼 없음 |
+| # | 기능 | 트리거 | 모델 | 저장 필드 | 구현 상태 |
+|---|------|--------|------|---------|---------|
+| 6-1 | AI Copilot | 교사 수업 중 질문 | Claude JSON | `CopilotQuestion` | ✅ 완료 — Claude 실호출, fallback 포함 |
+| 6-2 | 에세이 피드백 | 교사 피드백 초안 요청 | Claude | 반환값 (DB 저장 없음) | ✅ 완료 — teacherHasClassAccess 포함 |
+| 6-3 | 성장 리포트 | 어드민/교사 월별 생성 | Claude | `ReportData` | ✅ 완료 |
+| 6-4 | Whisper 녹음 변환 | 교사 음성 파일 업로드 | Whisper | `RecordingSummary` | ✅ 완료 — `after()` 비동기, 5분 폴링 |
+| 6-5 | 복습 자동 생성 | 교사 수업 후 생성 | Claude | `ReviewSummary` | ✅ 완료 |
+| 6-6 | 이탈 예측 배치 | Vercel Cron 일1회 | 규칙 기반 | `ChurnPrediction` | ✅ 완료 |
+| 6-7 | 민원 AI 초안 | 어드민 민원 응답 전 | Claude | `Complaint.aiDraft` | ✅ 완료 — toneHint 프롬프트 반영 |
 
 ---
 
@@ -412,8 +412,9 @@ GET 단건 조회 — 상세 화면 재조회용. `audioUrl`, `transcript`, `sum
 | 완료 | 100 | emerald |
 | 실패 | — | rose 에러 메시지 |
 
-> **메모:** 현재 구현은 업로드 요청 안에서 전사와 요약까지 처리하는 단순한 방식이다.
-> queue/background job 기반 비동기 파이프라인은 후속 고도화로 분리한다.
+> **구현 방식:** `next/server`의 `after()`를 사용해 응답을 즉시 반환하고 Whisper 전사를 백그라운드에서 처리한다.
+> POST는 PROCESSING 레코드를 반환하고, 전사 완료 시 DB를 COMPLETED로 업데이트한다.
+> 클라이언트(상세 페이지)는 PROCESSING 상태에서 5초 간격으로 폴링하며 최대 5분 후 자동 중단한다.
 
 ---
 
