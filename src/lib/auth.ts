@@ -43,7 +43,14 @@ async function authorizeStaff(
 
   if (!email || !password) return null
 
-  const user = await prisma.user.findUnique({ where: { email } })
+  let user
+  try {
+    user = await prisma.user.findUnique({ where: { email } })
+  } catch (err) {
+    console.error('[auth] DB error during staff login:', err)
+    throw new Error('DB_CONNECTION_ERROR')
+  }
+
   if (!user?.password || !user.active) return null
 
   const valid = await bcrypt.compare(password, user.password)
