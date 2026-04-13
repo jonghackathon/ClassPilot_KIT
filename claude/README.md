@@ -15,9 +15,26 @@ claude/
 │   ├── git-worktree/     병렬 Git Worktree 전략
 │   ├── orchestra/        멀티 에이전트 조율 패턴
 │   └── design-workflow/  AI 디자인 워크플로우
+├── in-progress/   현재 진행 중인 작업 문서
 ├── done/          완료된 작업 (Step 2~7, 이관, Supabase 연동 등)
 └── templates/     작업 문서 템플릿
 ```
+
+### in-progress/ 사용 방법
+
+새 Step 또는 작업 단위를 시작할 때:
+1. `in-progress/` 아래에 폴더 생성 (`14_다음작업/` 형태)
+2. 작업 계획·진행 로그·운영 방식 문서를 여기서 작성
+3. 작업이 완료되면 `done/`으로 폴더째 이동
+
+```
+in-progress/14_xxx/
+  ├── 00_목차.md
+  ├── 01_작업_계획.md
+  └── 구현_진행_로그.md
+```
+
+> Step 2~13의 모든 작업 문서가 이 방식으로 관리됐으며, 완료 후 `done/`에 보관되어 있다.
 
 ---
 
