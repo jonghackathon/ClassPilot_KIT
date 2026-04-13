@@ -1,3 +1,10 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '로그인',
+  description: 'AcadeMind에 로그인하여 역할별 워크스페이스를 시작하세요.',
+}
+
 export default function AuthLayout({
   children,
 }: {

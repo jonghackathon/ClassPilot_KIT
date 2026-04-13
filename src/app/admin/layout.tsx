@@ -73,7 +73,7 @@ export default function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-dvh bg-transparent">
       <div className="mx-auto flex min-h-screen max-w-[1480px] gap-6 px-4 py-4 lg:px-6">
         <aside className="glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] w-[280px] shrink-0 rounded-[30px] border border-white/55 p-5 lg:flex lg:flex-col">
           <div className="rounded-[28px] bg-slate-950 px-5 py-6 text-white">
@@ -224,39 +224,47 @@ export default function AdminLayout({
       </div>
 
       {isMobileNavVisible ? (
-        <div className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden">
-          <div className="absolute left-4 right-4 top-4 rounded-[32px] border border-white/55 bg-white p-5 shadow-2xl shadow-slate-900/15">
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        >
+          <div
+            className="absolute inset-x-4 top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[32px] border border-white/55 bg-white p-5 shadow-2xl shadow-slate-900/15"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-400">AcadeMind Admin</p>
                 <p className="mt-2 text-lg font-semibold text-slate-950">운영자 빠른 이동</p>
               </div>
               <button
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700"
                 onClick={() => setMobileNavOpen(false)}
                 type="button"
+                aria-label="메뉴 닫기"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav className="mt-5 grid gap-2 sm:grid-cols-2">
+            <nav className="mt-5 grid grid-cols-2 gap-2">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
 
                 return (
                   <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-medium transition ${
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileNavOpen(false)}
+                    className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-medium transition ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-slate-50 text-slate-700'
+                        : 'bg-slate-50 text-slate-700 active:bg-slate-100'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 )
               })}
