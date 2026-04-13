@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get('classId') ?? undefined
   const status = searchParams.get('status') ?? undefined
 
-  let classIds = classId ? [classId] : undefined
+  let classIds: string[] | undefined = classId ? [classId] : undefined
   if (session.user.role === 'STUDENT') {
     const enrollments = await prisma.enrollment.findMany({
       where: { studentId: session.user.id, active: true },
