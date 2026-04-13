@@ -46,10 +46,12 @@ async function main() {
   await resetDatabase()
 
   const password = await bcrypt.hash("1234", 10)
+  const pin = await bcrypt.hash("1234", 10) // 수강생 PIN (4자리)
 
   const academy = await prisma.academy.create({
     data: {
-      name: "AcadeMind",
+      name: "ClassPilot",
+      code: "DEMO-1234",
       settings: {
         create: [
           { key: "theme.primary", value: "indigo" },
@@ -117,16 +119,17 @@ async function main() {
   const studentMain = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "student@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "민수",
       role: "STUDENT",
       phone: "010-3333-1111",
       studentProfile: {
         create: {
+          studentCode: "2025-001",
           grade: "중2",
           school: "중앙중",
-          memo: "수학 심화반 메인 데모 계정",
+          memo: "수학 심화반 메인 데모 계정 · PIN: 1234",
           parents: {
             create: [{ name: "민수 어머니", phone: "010-9999-0001", relation: "모" }],
           },
@@ -138,12 +141,13 @@ async function main() {
   const studentJieun = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "jieun@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "이지은",
       role: "STUDENT",
       studentProfile: {
         create: {
+          studentCode: "2025-002",
           grade: "중2",
           school: "서초중",
           parents: {
@@ -157,33 +161,33 @@ async function main() {
   const studentWoojin = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "woojin@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "정우진",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중3", school: "반포중" } },
+      studentProfile: { create: { studentCode: "2025-003", grade: "중3", school: "반포중" } },
     },
   })
 
   const studentSoyoung = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "soyoung@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "한소영",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중2", school: "잠원중" } },
+      studentProfile: { create: { studentCode: "2025-004", grade: "중2", school: "잠원중" } },
     },
   })
 
   const studentTaeho = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "taeho@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "김태호",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중1", school: "서일중" } },
+      studentProfile: { create: { studentCode: "2025-005", grade: "중1", school: "서일중" } },
     },
   })
 

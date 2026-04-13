@@ -66,6 +66,7 @@ type ParentContact = {
 }
 
 type StudentProfile = {
+  studentCode: string | null
   grade: string | null
   school: string | null
   birthDate?: string | null
@@ -153,7 +154,7 @@ type PaymentItem = {
 type StudentListItem = {
   id: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   active: boolean
   studentProfile: StudentProfile | null
@@ -988,7 +989,7 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
 
     setEditForm({
       name: student.name,
-      email: student.email,
+      email: student.email ?? '',
       password: '1234',
       phone: student.phone ?? '',
       grade: student.studentProfile?.grade ?? '',
@@ -1235,7 +1236,12 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
 
             <div className="grid gap-3 text-sm text-slate-600">
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                이메일: {student.email}
+                학번: {student.studentProfile?.studentCode ?? (
+                  <span className="text-slate-400">미발급</span>
+                )}
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                이메일: {student.email ?? <span className="text-slate-400">없음</span>}
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
                 연락처: {student.phone ?? '미등록'}
@@ -1250,6 +1256,8 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
                   : '미배정'}
               </div>
             </div>
+
+            <PinResetButton studentId={student.id} studentName={student.name} onDone={() => mutate()} />
 
             <div
               className={cx(
@@ -1613,6 +1621,59 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
           </button>
         </div>
       </OverlayPanel>
+    </div>
+  )
+}
+
+// ─── PIN 초기화 버튼 ─────────────────────────────────────────────────────────
+
+function PinResetButton({
+  studentId,
+  studentName,
+  onDone,
+}: {
+  studentId: string
+  studentName: string
+  onDone: () => void
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  async function handleReset() {
+    if (!window.confirm(`${studentName} 학생의 PIN을 0000으로 초기화할까요?`)) return
+    setStatus('loading')
+    try {
+      await apiRequest(`/api/users/${studentId}/reset-pin`, { method: 'POST' })
+      setStatus('done')
+      onDone()
+      setTimeout(() => setStatus('idle'), 3000)
+    } catch {
+      setStatus('error')
+      setTimeout(() => setStatus('idle'), 3000)
+    }
+  }
+
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-800">수강생 로그인 PIN</p>
+      <p className="mt-1 text-xs text-slate-500">
+        PIN을 초기화하면 임시 PIN(0000)으로 변경돼요. 학생에게 전달 후 변경하도록 안내하세요.
+      </p>
+      <button
+        type="button"
+        onClick={handleReset}
+        disabled={status === 'loading'}
+        className={cx(
+          'mt-3 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition',
+          status === 'done'
+            ? 'bg-emerald-50 text-emerald-700'
+            : status === 'error'
+              ? 'bg-rose-50 text-rose-700'
+              : 'bg-slate-950 text-white hover:bg-slate-800 disabled:opacity-60',
+        )}
+      >
+        {status === 'loading' && <LoaderCircle className="h-4 w-4 animate-spin" />}
+        {status === 'done' ? '초기화 완료 (0000)' : status === 'error' ? '초기화 실패' : 'PIN 초기화'}
+      </button>
     </div>
   )
 }

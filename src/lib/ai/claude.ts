@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const DEFAULT_CLAUDE_MODEL = process.env.CLAUDE_MODEL ?? 'claude-3-7-sonnet-latest'
+const CLAUDE_MODEL = 'claude-sonnet-4-6'
 
 let cachedClient: Anthropic | null = null
 
@@ -19,5 +19,5 @@ export function getClaudeClient() {
 }
 
 export function getClaudeModel() {
-  return DEFAULT_CLAUDE_MODEL
+  return CLAUDE_MODEL
 }
