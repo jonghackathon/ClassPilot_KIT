@@ -10,19 +10,19 @@ export async function getRouteId(context: { params: Promise<RouteParams> | Route
 }
 
 export async function parseRequestBody<T>(request: Request, schema: ZodSchema<T>) {
-  const json = await request.json().catch(() => null)
+  const json = await request.json().catch(() => undefined)
   const result = schema.safeParse(json)
 
   if (!result.success) {
     return {
-      data: null as T | null,
+      data: undefined as T | undefined,
       error: errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400, result.error.flatten()),
     }
   }
 
   return {
     data: result.data,
-    error: null,
+    error: undefined,
   }
 }
 
