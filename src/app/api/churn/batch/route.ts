@@ -248,9 +248,10 @@ export async function POST(request: NextRequest) {
     ),
   )
 
+  type ChurnItem = (typeof items)[number]
   const dangerStudents = items
-    .filter((item) => item.level === 'DANGER')
-    .map((item) => ({
+    .filter((item: ChurnItem) => item.level === 'DANGER')
+    .map((item: ChurnItem) => ({
       id: item.student.id,
       name: item.student.name,
       score: item.score,
