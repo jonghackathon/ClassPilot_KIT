@@ -443,7 +443,7 @@ export function AdminChurnManagerPage() {
         tone: 'rose',
         title: '연락 기록 저장에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsSavingContact(false)
@@ -519,7 +519,7 @@ export function AdminChurnManagerPage() {
         tone: 'rose',
         title: '이탈 대응 저장에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsSavingAction(false)
@@ -560,7 +560,7 @@ export function AdminChurnManagerPage() {
         tone: 'rose',
         title: '이탈 예측 갱신에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsRefreshingBatch(false)
@@ -702,7 +702,7 @@ export function AdminChurnManagerPage() {
 
             {!churnLoading && churnError ? (
               <div className="rounded-[28px] border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">
-                이탈 예측 데이터를 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.
+                이탈 예측 준비 중입니다.
               </div>
             ) : null}
 

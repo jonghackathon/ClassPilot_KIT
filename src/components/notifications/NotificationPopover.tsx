@@ -53,8 +53,8 @@ export function NotificationPopover({
           </>
         ) : error ? (
           <EmptyState
-            title="알림을 불러오지 못했습니다."
-            description="잠시 후 다시 시도해 주세요."
+            title="준비 중입니다."
+            description="곧 서비스 예정입니다."
             className="px-4 py-6"
           />
         ) : items.length === 0 ? (

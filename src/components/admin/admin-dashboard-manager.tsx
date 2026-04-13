@@ -11,10 +11,12 @@ import {
   CalendarClock,
   CircleDollarSign,
   Clock3,
+  GraduationCap,
   LoaderCircle,
   ShieldAlert,
   TrendingUp,
   Users,
+  UserSquare2,
 } from 'lucide-react'
 
 import {
@@ -445,6 +447,35 @@ export function AdminDashboardManagerPage() {
         description="학생, 수업, 수납, 민원, 이탈 예측 데이터를 묶어서 운영 우선순위를 바로 확인할 수 있게 구성했습니다."
       />
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <Link
+          href="/teacher/dashboard"
+          className="flex items-center gap-4 rounded-[28px] border border-violet-100 bg-gradient-to-br from-violet-50 to-white px-6 py-5 transition hover:border-violet-300 hover:shadow-md hover:shadow-violet-100"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-600 text-white shadow-lg shadow-violet-500/25">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-900">강사 페이지</p>
+            <p className="mt-0.5 text-sm text-slate-500">출결·과제·이탈 현황·진도 관리</p>
+          </div>
+          <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-violet-400" />
+        </Link>
+        <Link
+          href="/student/home"
+          className="flex items-center gap-4 rounded-[28px] border border-sky-100 bg-gradient-to-br from-sky-50 to-white px-6 py-5 transition hover:border-sky-300 hover:shadow-md hover:shadow-sky-100"
+        >
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg shadow-sky-500/25">
+            <UserSquare2 className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-900">학생 페이지</p>
+            <p className="mt-0.5 text-sm text-slate-500">출결 확인·과제·복습·Q&A</p>
+          </div>
+          <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-sky-400" />
+        </Link>
+      </div>
+
       {isLoading ? (
         <div className="flex min-h-[220px] items-center justify-center rounded-[32px] border border-slate-200 bg-white text-slate-500">
           <LoaderCircle className="mr-2 h-5 w-5 animate-spin" />
@@ -454,7 +485,7 @@ export function AdminDashboardManagerPage() {
 
       {!isLoading && hasError ? (
         <div className="rounded-[32px] border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">
-          대시보드 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+          대시보드 준비 중입니다.
         </div>
       ) : null}
 

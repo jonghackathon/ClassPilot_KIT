@@ -513,7 +513,7 @@ export function AdminClassesManagerPage() {
         tone: 'rose',
         title: '반 생성에 실패했습니다.',
         description:
-          error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+          error instanceof Error ? error.message : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)
@@ -804,7 +804,7 @@ export function AdminClassDetailManagerPage({ classId }: { classId: string }) {
         description:
           saveError instanceof Error
             ? saveError.message
-            : '잠시 후 다시 시도해 주세요.',
+            : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)
@@ -843,7 +843,7 @@ export function AdminClassDetailManagerPage({ classId }: { classId: string }) {
         description:
           saveError instanceof Error
             ? saveError.message
-            : '잠시 후 다시 시도해 주세요.',
+            : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)
