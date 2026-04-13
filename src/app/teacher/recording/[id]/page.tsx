@@ -1,5 +1,11 @@
-import { TeacherRecordingDetailPage } from '@/components/frontend/teacher-pages'
+import { TeacherRecordingDetailPage } from '@/components/teacher/recording/teacher-recording-detail-page'
 
-export default function Page() {
-  return <TeacherRecordingDetailPage />
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  return <TeacherRecordingDetailPage id={id} />
 }

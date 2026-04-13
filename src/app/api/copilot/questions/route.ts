@@ -1,20 +1,27 @@
-import { prisma } from '@/lib/db'
+import { z } from 'zod'
+
 import { errorResponse, successResponse } from '@/lib/api-response'
+import { teacherHasClassAccess } from '@/lib/access-scope'
+import { prisma } from '@/lib/db'
+import { parseRequestBody } from '@/lib/route-helpers'
 import { withAuth } from '@/lib/with-auth'
 
-function buildCopilotAnswer(question: string, context?: string | null) {
-  const normalized = question.trim()
+const questionCreateSchema = z.object({
+  sessionId: z.string().cuid(),
+  question: z.string().trim().min(1).max(500),
+})
 
-  return [
-    '핵심 요약',
-    `- 요청: ${normalized}`,
-    context ? `- 수업 맥락: ${context}` : '- 수업 맥락: 기본 수업 흐름 기준',
-    '',
-    '추천 진행',
-    '- 오늘 수업 목표를 한 문장으로 다시 확인합니다.',
-    '- 이해가 흔들린 학생을 먼저 짚고, 질문 한 개로 반응을 확인합니다.',
-    '- 마무리에서 과제와 복습 포인트를 분명히 남깁니다.',
-  ].join('\n')
+function buildCopilotAnswer(question: string, topic?: string | null) {
+  const normalized = question.trim()
+  const lessonTopic = topic?.trim() || '현재 수업 주제'
+
+  return {
+    beginner: `${lessonTopic}를 처음 듣는 학생에게는 "${normalized}"를 일상적인 예시 하나로 먼저 풀어 설명합니다.`,
+    example: `칠판이나 화면에는 ${lessonTopic}와 연결된 짧은 예제 한 개를 보여주고, 질문을 다시 읽게 합니다.`,
+    advanced: `"${normalized}"와 비슷하지만 조건이 바뀌면 어떻게 되는지 확장 질문 한 개를 던져 심화 이해를 확인합니다.`,
+    summary: `${lessonTopic} 기준으로 핵심 개념, 예제, 확장 질문까지 바로 수업에 쓸 수 있는 답변입니다.`,
+    usedCards: ['beginner', 'example', 'advanced', 'summary'],
+  }
 }
 
 export async function POST(request: Request) {
@@ -25,46 +32,49 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as {
-      sessionId?: string
-      question?: string
-      markAsUsed?: boolean
+    const { data, error: validationError } = await parseRequestBody(request, questionCreateSchema)
+    if (validationError || !data) {
+      return validationError
     }
 
-    if (!body.sessionId || !body.question?.trim()) {
-      return errorResponse('VALIDATION', 'sessionId와 question은 필수입니다.', 400)
-    }
-
-    const copilotSession = await prisma.copilotSession.findFirst({
-      where: {
-        id: body.sessionId,
-        ...(session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id }),
-      },
-      select: {
-        id: true,
-        context: true,
+    const copilotSession = await prisma.copilotSession.findUnique({
+      where: { id: data.sessionId },
+      include: {
+        lesson: {
+          include: {
+            class: {
+              select: {
+                id: true,
+                academyId: true,
+              },
+            },
+          },
+        },
       },
     })
 
-    if (!copilotSession) {
+    if (!copilotSession || copilotSession.lesson.class.academyId !== session.user.academyId) {
       return errorResponse('NOT_FOUND', '코파일럿 세션을 찾을 수 없습니다.', 404)
     }
 
-    const answer = buildCopilotAnswer(body.question, copilotSession.context)
+    if (
+      session.user.role === 'TEACHER' &&
+      !(await teacherHasClassAccess(session.user.id, copilotSession.lesson.classId))
+    ) {
+      return errorResponse('FORBIDDEN', '담당 반 코파일럿 세션만 질문할 수 있습니다.', 403)
+    }
+
+    const answer = buildCopilotAnswer(data.question, copilotSession.topic ?? copilotSession.lesson.topic)
 
     const created = await prisma.copilotQuestion.create({
       data: {
-        sessionId: body.sessionId,
-        question: body.question.trim(),
-        answer,
-        used: Boolean(body.markAsUsed),
-      },
-    })
-
-    await prisma.copilotSession.update({
-      where: { id: body.sessionId },
-      data: {
-        status: 'IN_PROGRESS',
+        sessionId: data.sessionId,
+        question: data.question.trim(),
+        beginner: answer.beginner,
+        example: answer.example,
+        advanced: answer.advanced,
+        summary: answer.summary,
+        usedCards: answer.usedCards,
       },
     })
 
