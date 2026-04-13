@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
-import { BookOpenText, CalendarClock, Layers3, Plus, Save, Target, X } from 'lucide-react'
+import { BookOpenText, CalendarClock, Layers3, LoaderCircle, Plus, Save, Sparkles, Target, X } from 'lucide-react'
 
 import { apiRequest } from '@/lib/fetcher'
 import { useClasses } from '@/hooks/useClasses'
@@ -31,6 +31,17 @@ type CurriculumItem = {
   sortOrder?: number
   stages?: CurriculumStage[] | unknown
   classes?: Array<{ id: string; name: string }>
+}
+
+type ClassItem = {
+  id: string
+  name: string
+  enrollments?: Array<{
+    student: {
+      id: string
+      name: string
+    }
+  }>
 }
 
 type WeekNoteItem = {
@@ -135,7 +146,7 @@ function parseStagesText(value: string) {
   } catch {
     return trimmed
       .split('\n')
-      .map((line, index) => line.trim())
+      .map((line) => line.trim())
       .filter(Boolean)
       .map((line, index) => ({
         id: `stage-${index + 1}`,
@@ -179,14 +190,20 @@ export function TeacherProgressManager() {
   const [selectedClassId, setSelectedClassId] = useState('')
   const [curriculumModalOpen, setCurriculumModalOpen] = useState(false)
   const [noteModalOpen, setNoteModalOpen] = useState(false)
+  const [reviewTargetLessonId, setReviewTargetLessonId] = useState<string | null>(null)
   const [editingCurriculum, setEditingCurriculum] = useState<CurriculumItem | null>(null)
   const [editingNote, setEditingNote] = useState<WeekNoteItem | null>(null)
   const [curriculumDraft, setCurriculumDraft] = useState<CurriculumDraft>(emptyCurriculumDraft)
   const [noteDraft, setNoteDraft] = useState<WeekNoteDraft>(emptyWeekNoteDraft)
+  const [message, setMessage] = useState<{
+    tone: 'emerald' | 'amber' | 'rose'
+    title: string
+    description: string
+  } | null>(null)
 
-  const classesResponse = useClasses<{ data?: { items?: Array<{ id: string; name: string }> } }>()
+  const classesResponse = useClasses<{ data?: { items?: ClassItem[] } }>()
   const curriculumResponse = useCurriculum<{ data?: { items?: CurriculumItem[] } }>()
-  const classes = classesResponse.data?.data?.items ?? []
+  const classes = useMemo(() => classesResponse.data?.data?.items ?? [], [classesResponse.data?.data?.items])
   const effectiveClassId = selectedClassId || classes[0]?.id || ''
   const notesResponse = useProgress<{ data?: { items?: WeekNoteItem[] } }>(
     effectiveClassId ? `?classId=${effectiveClassId}` : '',
@@ -313,6 +330,62 @@ export function TeacherProgressManager() {
     await notesResponse.mutate()
   }
 
+  const generateReviews = async (note: WeekNoteItem) => {
+    if (!note.lesson?.id) {
+      setMessage({
+        tone: 'amber',
+        title: '수업 연결 필요',
+        description: 'lesson이 연결된 주간 기록에서만 복습을 자동 생성할 수 있습니다.',
+      })
+      return
+    }
+
+    const classItem = classes.find((item) => item.id === note.classId)
+    const students = classItem?.enrollments?.map((item) => item.student) ?? []
+
+    if (!students.length) {
+      setMessage({
+        tone: 'amber',
+        title: '생성 대상 없음',
+        description: '현재 반에 활성 수강생이 없어 복습을 생성할 수 없습니다.',
+      })
+      return
+    }
+
+    setReviewTargetLessonId(note.lesson.id)
+    setMessage(null)
+
+    const results = await Promise.allSettled(
+      students.map((student) =>
+        apiRequest('/api/reviews/generate', {
+          method: 'POST',
+          body: JSON.stringify({
+            studentId: student.id,
+            lessonId: note.lesson?.id,
+          }),
+        }),
+      ),
+    )
+
+    const successCount = results.filter((item) => item.status === 'fulfilled').length
+    const failCount = results.length - successCount
+
+    setMessage(
+      failCount === 0
+        ? {
+            tone: 'emerald',
+            title: '복습 생성 완료',
+            description: `${note.class.name} 반 ${successCount}명 복습 요약을 생성했습니다.`,
+          }
+        : {
+            tone: 'amber',
+            title: '일부 생성 완료',
+            description: `${successCount}명 생성, ${failCount}명 실패했습니다. 다시 시도해 주세요.`,
+          },
+    )
+    setReviewTargetLessonId(null)
+  }
+
   return (
     <div className="space-y-6">
       <PageHero
@@ -373,6 +446,22 @@ export function TeacherProgressManager() {
           tone="amber"
         />
       </div>
+
+      {message ? (
+        <SurfaceCard
+          className={cx(
+            'border',
+            message.tone === 'emerald'
+              ? 'border-emerald-100 bg-emerald-50/70'
+              : message.tone === 'rose'
+                ? 'border-rose-100 bg-rose-50/70'
+                : 'border-amber-100 bg-amber-50/70',
+          )}
+        >
+          <p className="font-semibold text-slate-900">{message.title}</p>
+          <p className="mt-1 text-sm text-slate-600">{message.description}</p>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard>
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -482,6 +571,21 @@ export function TeacherProgressManager() {
                   </div>
                   <p className="mt-3 text-sm leading-6 text-slate-600">{note.content}</p>
                   <div className="mt-4 flex flex-wrap gap-2">
+                    {note.lesson ? (
+                      <button
+                        className="rounded-2xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-700 transition hover:border-violet-300"
+                        disabled={reviewTargetLessonId === note.lesson.id}
+                        onClick={() => generateReviews(note)}
+                        type="button"
+                      >
+                        {reviewTargetLessonId === note.lesson.id ? (
+                          <LoaderCircle className="mr-2 inline h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 inline h-4 w-4" />
+                        )}
+                        AI 복습 생성
+                      </button>
+                    ) : null}
                     <button
                       className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:text-slate-900"
                       onClick={() => openNoteModal(note)}
@@ -517,6 +621,21 @@ export function TeacherProgressManager() {
                     <p className="mt-3 text-sm leading-6 text-slate-600">{note.content}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    {note.lesson ? (
+                      <button
+                        className="rounded-2xl border border-violet-200 bg-white px-4 py-3 text-sm font-semibold text-violet-700 transition hover:border-violet-300"
+                        disabled={reviewTargetLessonId === note.lesson.id}
+                        onClick={() => generateReviews(note)}
+                        type="button"
+                      >
+                        {reviewTargetLessonId === note.lesson.id ? (
+                          <LoaderCircle className="mr-2 inline h-4 w-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="mr-2 inline h-4 w-4" />
+                        )}
+                        AI 복습 생성
+                      </button>
+                    ) : null}
                     <button
                       className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-violet-200 hover:text-slate-900"
                       onClick={() => openNoteModal(note)}
