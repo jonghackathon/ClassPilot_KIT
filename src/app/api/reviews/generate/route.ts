@@ -6,20 +6,13 @@ import { buildReviewGenerationPrompt } from '@/lib/ai/prompts'
 import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
 import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
+import { extractClaudeText } from '@/lib/ai/extract-text'
 import { withAuth } from '@/lib/with-auth'
 
 const reviewGenerateSchema = z.object({
   studentId: z.string().cuid(),
   lessonId: z.string().cuid(),
 })
-
-function extractTextFromClaudeResponse(response: Awaited<ReturnType<ReturnType<typeof getClaudeClient>['messages']['create']>>) {
-  return response.content
-    .filter((block): block is Extract<(typeof response.content)[number], { type: 'text' }> => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim()
-}
 
 function fallbackQuiz(topic: string) {
   return [
@@ -54,7 +47,7 @@ function parseQuiz(text: string, topic: string) {
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -136,10 +129,11 @@ export async function POST(request: NextRequest) {
       model: getClaudeModel(),
       max_tokens: 700,
       temperature: 0.3,
+      stream: false,
       system: '한국어 학원 복습 자료를 만드는 조교처럼 간결하고 친절하게 답합니다.',
       messages: [{ role: 'user', content: prompt }],
     })
-    const text = extractTextFromClaudeResponse(summaryResponse)
+    const text = extractClaudeText(summaryResponse)
     if (text) {
       summary = text
       preview = text.slice(0, 120)
@@ -149,6 +143,7 @@ export async function POST(request: NextRequest) {
       model: getClaudeModel(),
       max_tokens: 500,
       temperature: 0.2,
+      stream: false,
       system:
         '반드시 JSON 배열만 출력합니다. 각 항목은 question, answer 두 필드를 가진 한국어 객체여야 합니다.',
       messages: [
@@ -158,7 +153,7 @@ export async function POST(request: NextRequest) {
         },
       ],
     })
-    quiz = parseQuiz(extractTextFromClaudeResponse(quizResponse), lesson.topic ?? '오늘 수업')
+    quiz = parseQuiz(extractClaudeText(quizResponse), lesson.topic ?? '오늘 수업')
   } catch {
     // 환경변수 미설정 또는 외부 호출 실패 시에도 수업 흐름이 끊기지 않도록 기본 초안을 반환한다.
   }

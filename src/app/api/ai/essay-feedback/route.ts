@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { teacherHasClassAccess } from '@/lib/access-scope'
 import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
+import { extractClaudeText } from '@/lib/ai/extract-text'
 import { prisma } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { withAuth } from '@/lib/with-auth'
@@ -53,21 +54,13 @@ function parseFeedback(text: string, fallback: FeedbackPayload) {
   }
 }
 
-function extractText(response: Awaited<ReturnType<ReturnType<typeof getClaudeClient>['messages']['create']>>) {
-  return response.content
-    .filter((block): block is Extract<(typeof response.content)[number], { type: 'text' }> => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim()
-}
-
 export async function POST(request: NextRequest) {
   const rateLimitError = rateLimit(request, { limit: 10, windowMs: 60_000 })
   if (rateLimitError) return rateLimitError
 
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -113,6 +106,7 @@ export async function POST(request: NextRequest) {
       model: getClaudeModel(),
       max_tokens: 800,
       temperature: 0.3,
+      stream: false,
       system:
         '반드시 JSON 객체만 출력합니다. understanding, structure, expression, nextAction, teacherComment 다섯 필드를 가진 한국어 피드백이어야 합니다.',
       messages: [
@@ -127,7 +121,7 @@ export async function POST(request: NextRequest) {
         },
       ],
     })
-    feedback = parseFeedback(extractText(response), fallback)
+    feedback = parseFeedback(extractClaudeText(response), fallback)
   } catch {
     // 외부 AI 호출 실패 시에도 편집 가능한 기본 초안을 반환한다.
   }

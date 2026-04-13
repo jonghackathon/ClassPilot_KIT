@@ -5,25 +5,43 @@ import type { UserRole } from '@/types'
 import { errorResponse } from './api-response'
 import { auth } from './auth'
 
-export async function withAuth(roles?: UserRole[]) {
+type AuthenticatedSession = Session & {
+  user: NonNullable<Session['user']> & {
+    id: string
+    academyId: string
+    role: UserRole
+  }
+}
+
+type AuthResult =
+  | {
+      session: AuthenticatedSession
+      error: null
+    }
+  | {
+      session: null
+      error: Response
+    }
+
+export async function withAuth(roles?: UserRole[]): Promise<AuthResult> {
   const session = await auth()
 
   if (!session?.user) {
     return {
-      session: null as Session | null,
+      session: null,
       error: errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401),
     }
   }
 
   if (roles && !roles.includes(session.user.role as UserRole)) {
     return {
-      session: null as Session | null,
+      session: null,
       error: errorResponse('FORBIDDEN', '권한이 없습니다.', 403),
     }
   }
 
   return {
-    session,
+    session: session as AuthenticatedSession,
     error: null,
   }
 }

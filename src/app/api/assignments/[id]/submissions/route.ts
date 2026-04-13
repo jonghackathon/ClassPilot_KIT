@@ -12,7 +12,7 @@ type RouteContext = {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id: assignmentId } = await Promise.resolve(context.params)
   const assignment = await prisma.assignment.findUnique({
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id: assignmentId } = await Promise.resolve(context.params)
   const assignment = await prisma.assignment.findUnique({

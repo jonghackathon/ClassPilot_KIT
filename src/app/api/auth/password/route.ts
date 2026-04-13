@@ -9,7 +9,7 @@ import { withAuth } from '@/lib/with-auth'
 export async function POST(request: Request) {
   const { session, error } = await withAuth()
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

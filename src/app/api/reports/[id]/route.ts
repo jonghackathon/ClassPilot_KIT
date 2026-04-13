@@ -12,7 +12,7 @@ type RouteContext = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const report = await prisma.reportData.findUnique({
@@ -33,7 +33,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const current = await prisma.reportData.findUnique({
@@ -83,7 +83,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const current = await prisma.reportData.findUnique({

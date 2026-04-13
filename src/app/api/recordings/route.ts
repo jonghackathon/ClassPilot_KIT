@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { toFile } from 'openai'
@@ -13,13 +12,13 @@ import { getTeacherClassIds, teacherHasClassAccess } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
 import { rateLimit } from '@/lib/rate-limit'
 import { parseRequestBody } from '@/lib/route-helpers'
+import { uploadToSupabaseStorage } from '@/lib/storage'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
 
 const recordingStatuses = new Set(['PROCESSING', 'COMPLETED', 'FAILED'] as const)
-const publicRecordingDir = path.join(process.cwd(), 'public', 'uploads', 'recordings')
 const audioUrlSchema = z
   .string()
   .trim()
@@ -67,13 +66,16 @@ function buildStoredFileName(originalName: string, mimeType: string) {
 async function storeRecordingFile(file: File) {
   const fileBuffer = Buffer.from(await file.arrayBuffer())
   const storedName = buildStoredFileName(file.name || 'recording', file.type || 'audio/webm')
-  const absolutePath = path.join(publicRecordingDir, storedName)
-  await mkdir(publicRecordingDir, { recursive: true })
-  await writeFile(absolutePath, fileBuffer)
+  const objectPath = `recordings/${storedName}`
+  const uploaded = await uploadToSupabaseStorage({
+    buffer: fileBuffer,
+    objectPath,
+    contentType: file.type || 'audio/webm',
+  })
 
   return {
     fileBuffer,
-    audioUrl: `/uploads/recordings/${storedName}`,
+    audioUrl: uploaded.publicUrl,
     storedName,
   }
 }
@@ -97,7 +99,7 @@ async function transcribeRecording(params: {
 export async function GET(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
 
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -301,13 +303,15 @@ export async function POST(request: NextRequest) {
 
     if (!normalizedTranscript) {
       const recordingId = created.id
-      const { storedName } = stored
       const mimeType = uploadedFile.type
 
       after(async () => {
         try {
-          const fileBuffer = await readFile(path.join(publicRecordingDir, storedName))
-          const transcript = await transcribeRecording({ fileBuffer, fileName: storedName, mimeType })
+          const transcript = await transcribeRecording({
+            fileBuffer: stored.fileBuffer,
+            fileName: stored.storedName,
+            mimeType,
+          })
 
           if (transcript) {
             const generated = summarizeTranscript(transcript)
@@ -328,11 +332,20 @@ export async function POST(request: NextRequest) {
               data: { status: 'FAILED', progress: 0 },
             })
           }
-        } catch {
-          await prisma.recordingSummary.update({
-            where: { id: recordingId },
-            data: { status: 'FAILED', progress: 0 },
-          }).catch(() => {})
+        } catch (caught) {
+          const failureNote =
+            caught instanceof Error ? caught.message.slice(0, 400) : '전사 작업에 실패했습니다.'
+
+          await prisma.recordingSummary
+            .update({
+              where: { id: recordingId },
+              data: {
+                status: 'FAILED',
+                progress: 0,
+                summary: failureNote,
+              },
+            })
+            .catch(() => undefined)
         }
       })
     }

@@ -8,7 +8,7 @@ import { reportCreateSchema } from '@/lib/validations/reports'
 
 export async function GET(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { searchParams, page, limit, skip } = getPageParams(request)
   const studentId =
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
   const teacherStudentIds =
     session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
 

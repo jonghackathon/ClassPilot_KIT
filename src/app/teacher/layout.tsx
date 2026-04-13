@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Bell,
   Bot,
@@ -19,6 +19,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+import { NotificationPopover } from '@/components/notifications/NotificationPopover'
+
 const navigation = [
   { href: '/teacher/dashboard', label: '홈', icon: GraduationCap },
   { href: '/teacher/attendance', label: '출결', icon: BookCheck },
@@ -32,11 +34,6 @@ const navigation = [
   { href: '/teacher/memo', label: '메모', icon: NotebookPen },
 ]
 
-const notifications = [
-  { title: '중급 A반 출결 입력 전', detail: '14:00 수업 시작 10분 전입니다. 출결 화면을 먼저 열어두면 좋아요.' },
-  { title: '과제 피드백 대기', detail: 'Python 반복문 실습 과제에서 4명의 피드백이 아직 대기 중입니다.' },
-]
-
 export default function TeacherLayout({
   children,
 }: {
@@ -46,6 +43,8 @@ export default function TeacherLayout({
   const { data: session } = useSession()
   const [alarmOpen, setAlarmOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [alarmPath, setAlarmPath] = useState<string | null>(null)
+  const [profilePath, setProfilePath] = useState<string | null>(null)
 
   const displayName = session?.user?.name ?? '박강사'
   const displayEmail = session?.user?.email ?? 'teacher@academind.kr'
@@ -60,10 +59,8 @@ export default function TeacherLayout({
     [],
   )
 
-  useEffect(() => {
-    setAlarmOpen(false)
-    setProfileOpen(false)
-  }, [pathname])
+  const isAlarmVisible = alarmOpen && alarmPath === pathname
+  const isProfileVisible = profileOpen && profilePath === pathname
 
   async function handleLogout() {
     await signOut({ callbackUrl: '/login' })
@@ -91,6 +88,7 @@ export default function TeacherLayout({
                 className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-violet-200 hover:text-violet-600"
                 onClick={() => {
                   setAlarmOpen((current) => !current)
+                  setAlarmPath(pathname)
                   setProfileOpen(false)
                 }}
                 type="button"
@@ -102,6 +100,7 @@ export default function TeacherLayout({
                 className="flex h-11 items-center gap-3 rounded-2xl bg-slate-950 px-4 text-white"
                 onClick={() => {
                   setProfileOpen((current) => !current)
+                  setProfilePath(pathname)
                   setAlarmOpen(false)
                 }}
                 type="button"
@@ -110,21 +109,14 @@ export default function TeacherLayout({
                 <span className="hidden text-sm font-semibold sm:inline">{displayName}</span>
               </button>
 
-              {alarmOpen ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
-                  <p className="text-sm font-semibold text-slate-900">수업 알림</p>
-                  <div className="mt-4 space-y-3">
-                    {notifications.map((item) => (
-                      <div key={item.title} className="rounded-2xl bg-slate-50 px-4 py-4">
-                        <p className="font-semibold text-slate-900">{item.title}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {isAlarmVisible ? (
+                <NotificationPopover
+                  className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                  title="수업 알림"
+                />
               ) : null}
 
-              {profileOpen ? (
+              {isProfileVisible ? (
                 <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
                   <div className="rounded-[24px] bg-violet-600 px-4 py-4 text-white">
                     <p className="text-xs uppercase tracking-[0.22em] text-violet-100">Teacher</p>

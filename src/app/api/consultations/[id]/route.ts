@@ -7,7 +7,7 @@ import { withAuth } from '@/lib/with-auth'
 export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -56,7 +56,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -105,7 +105,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 export async function DELETE(_: Request, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

@@ -25,7 +25,7 @@ function parseDateParam(value?: string | null, boundary: 'start' | 'end' = 'star
 
 export async function GET(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { searchParams, page, limit, skip } = getPageParams(request)
   const classId = searchParams.get('classId') ?? undefined

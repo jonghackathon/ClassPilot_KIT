@@ -14,7 +14,7 @@ const bulkSchema = z.object({
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

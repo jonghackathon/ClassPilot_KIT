@@ -86,7 +86,7 @@ function PrintDialog({
 }
 
 export function ReportsPage() {
-  const [selectedStudent, setSelectedStudent] = useState(reportRows[0].student)
+  const [selectedStudent, setSelectedStudent] = useState<string>(reportRows[0].student)
   const [selectedMonth, setSelectedMonth] = useState('2026년 4월')
   const [comment, setComment] = useState(
     '이번 달은 반복문 단원에서 이해도가 안정적으로 올라왔습니다. 과제 루틴이 유지되면 다음 단계 진입도 무리 없겠습니다.',

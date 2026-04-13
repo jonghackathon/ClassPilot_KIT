@@ -16,7 +16,7 @@ const sessionCreateSchema = z.object({
 export async function GET(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
