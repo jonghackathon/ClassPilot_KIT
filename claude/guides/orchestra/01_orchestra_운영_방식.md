@@ -1,5 +1,13 @@
 # Orchestra 운영 방식
 
+## ClassPilot 적용 사례
+
+- **Step 6** — foundation 순차 → Copilot/Reports/Churn 3갈래 병렬 구현
+- Orchestra 서브에이전트로 SSE 포맷·quiz JSON·Cron 보안 헤더 sanity check
+- `after()` 비동기 전환·중복 세션 차단 등 복잡한 케이스는 Claude가 직접 처리
+
+---
+
 > 여러 AI 에이전트를 조율하는 멀티 에이전트 워크플로우를 기록한다.  
 > ClassPilot Step 6 AI 연동 단계에서 실제 적용한 방식을 기반으로 한다.
 

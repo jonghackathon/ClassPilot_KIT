@@ -1,5 +1,13 @@
 # Codex 작업 운영 방식
 
+## ClassPilot 적용 사례
+
+- Step 2~7 전체 구현에서 Codex 브랜치 방식 사용 (`codex/step2-*` ~ `codex/step7-*`)
+- 과제·출결·학생·AI 기능 등 범위가 명확한 CRUD는 전부 Codex에 위임
+- 복잡한 비동기 처리·rate-limit 설계 등은 Claude가 이어받아 처리
+
+---
+
 > 이 문서는 ClassPilot 프로젝트에서 Claude Code(Codex 에이전트)를 어떻게 활용했는지 기록한다.
 
 ---

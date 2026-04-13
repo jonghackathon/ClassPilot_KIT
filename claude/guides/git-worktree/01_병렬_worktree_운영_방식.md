@@ -1,5 +1,13 @@
 # 병렬 Worktree 운영 방식
 
+## ClassPilot 적용 사례
+
+- **Step 4** — `teacher-assignments`, `teacher-progress-bot` 2개 브랜치를 워크트리로 분리해 병렬 구현
+- **Step 5** — `student-core`, `student-extra` 2개 브랜치 병렬 실행
+- 공용 파일(`teacher-pages.tsx`, `schema.prisma`) 충돌 방지를 위해 write scope 사전 분리가 핵심
+
+---
+
 > 작성일: 2026-04-12
 > 최종 업데이트: 2026-04-13
 > 기준 브랜치: `develop`
