@@ -43,10 +43,10 @@ export function searchContains(value?: string | null) {
   }
 }
 
-export function getStringArray(searchParams: URLSearchParams, key: string) {
+export function getStringArray(searchParams: URLSearchParams, key: string): string[] {
   return searchParams
     .getAll(key)
     .flatMap((value) => value.split(','))
     .map((value) => value.trim())
-    .filter(Boolean)
+    .filter((value): value is string => Boolean(value))
 }

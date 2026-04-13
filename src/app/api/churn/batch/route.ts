@@ -88,14 +88,12 @@ export async function POST(request: NextRequest) {
   }
 
   const studentIds = students.map((student: { id: string }) => student.id)
-  const classIds = [
-    ...new Set(
-      students.flatMap(
-        (student: { enrollments: Array<{ classId: string }> }) =>
-          student.enrollments.map((enrollment: { classId: string }) => enrollment.classId),
-      ),
+  const classIds = Array.from(new Set<string>(
+    students.flatMap(
+      (student: { enrollments: Array<{ classId: string }> }) =>
+        student.enrollments.map((enrollment: { classId: string }) => enrollment.classId),
     ),
-  ]
+  ))
 
   const [attendanceRows, assignmentRows, submissionRows, questionRows] = await Promise.all([
     prisma.attendance.findMany({
@@ -188,13 +186,11 @@ export async function POST(request: NextRequest) {
         ? clampScore(((absentCount + lateCount * 0.5) / totalAttendanceCount) * 100)
         : 0
 
-      const recentClassAssignmentIds = [
-        ...new Set(
-          student.enrollments.flatMap(
-            (enrollment: { classId: string }) => assignmentsByClass.get(enrollment.classId) ?? [],
-          ),
+      const recentClassAssignmentIds = Array.from(new Set<string>(
+        student.enrollments.flatMap(
+          (enrollment: { classId: string }) => assignmentsByClass.get(enrollment.classId) ?? [],
         ),
-      ]
+      ))
       const studentSubmissions = submissionsByStudent.get(student.id) ?? []
       const submittedAssignmentIds = new Set(
         studentSubmissions

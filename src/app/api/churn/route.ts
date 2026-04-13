@@ -106,7 +106,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const latestItems = [...latestByStudent.values()]
+  const latestItems = Array.from(latestByStudent.values())
     .filter((item) =>
       level && churnLevels.has(level as 'SAFE' | 'WARNING' | 'DANGER')
         ? item.level === (level as 'SAFE' | 'WARNING' | 'DANGER')
