@@ -2,7 +2,7 @@ export type UserRole = 'ADMIN' | 'TEACHER' | 'STUDENT'
 
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT'
 export type HomeworkStatus = 'COMPLETE' | 'INCOMPLETE'
-export type AssignmentType = 'CODING' | 'ESSAY' | 'IMAGE'
+export type AssignmentType = 'WORKBOOK' | 'ESSAY' | 'IMAGE'
 
 export type SubmissionStatus = 'SUBMITTED' | 'NOT_SUBMITTED' | 'LATE_SUBMIT'
 

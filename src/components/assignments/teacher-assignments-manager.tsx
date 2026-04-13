@@ -30,7 +30,7 @@ import {
 import { EssayFeedback } from '@/components/ai/EssayFeedback'
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
-type AssignmentType = 'CODING' | 'ESSAY' | 'IMAGE'
+type AssignmentType = 'WORKBOOK' | 'ESSAY' | 'IMAGE'
 type SubmissionStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED'
 
 type ApiEnvelope<T> = {
@@ -176,7 +176,7 @@ const chipButton = 'rounded-full px-3 py-2 text-sm font-medium transition'
 const emptyAssignmentForm: AssignmentFormState = {
   classId: '',
   title: '',
-  type: 'CODING',
+  type: 'WORKBOOK',
   dueDate: '',
   content: '',
   teacherNote: '',
@@ -289,13 +289,13 @@ function formatDateTime(value?: string | null) {
 }
 
 function formatAssignmentType(type: AssignmentType) {
-  if (type === 'CODING') return '코딩'
+  if (type === 'WORKBOOK') return '문제풀이'
   if (type === 'IMAGE') return '이미지'
   return '에세이'
 }
 
 function getAssignmentTone(type: AssignmentType): Tone {
-  if (type === 'CODING') return 'indigo'
+  if (type === 'WORKBOOK') return 'indigo'
   if (type === 'IMAGE') return 'sky'
   return 'violet'
 }
@@ -621,7 +621,7 @@ export function TeacherAssignmentsManagerPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['전체', 'CODING', 'ESSAY', 'IMAGE'] as const).map((type) => (
+            {(['전체', 'WORKBOOK', 'ESSAY', 'IMAGE'] as const).map((type) => (
               <button
                 key={type}
                 className={cx(
@@ -733,7 +733,7 @@ export function TeacherAssignmentsManagerPage() {
             />
             <div className="mt-5 space-y-3">
               {[
-                '코딩 과제는 실행 기준과 제출 형식을 같이 적어 둡니다.',
+                '문제풀이 과제는 채점 기준과 제출 형식을 같이 적어 둡니다.',
                 '이미지 과제는 예시 이미지 URL 또는 업로드 링크를 함께 넣습니다.',
                 '제출률이 낮은 반은 마감일보다 설명 보강이 먼저 필요합니다.',
                 '피드백 대기 건수는 학생별 세부 피드백과 과제 공통 피드백으로 나눠서 관리합니다.',
@@ -812,7 +812,7 @@ export function TeacherAssignmentsManagerPage() {
               }
               value={form.type}
             >
-              <option value="CODING">코딩</option>
+              <option value="WORKBOOK">문제풀이</option>
               <option value="ESSAY">에세이</option>
               <option value="IMAGE">이미지</option>
             </select>
@@ -1527,7 +1527,7 @@ export function TeacherAssignmentDetailManagerPage({
                   }
                   value={editForm.type}
                 >
-                  <option value="CODING">코딩</option>
+                  <option value="WORKBOOK">문제풀이</option>
                   <option value="ESSAY">에세이</option>
                   <option value="IMAGE">이미지</option>
                 </select>

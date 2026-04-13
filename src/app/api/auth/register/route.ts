@@ -1,9 +1,18 @@
 import bcrypt from 'bcryptjs'
+import { randomBytes } from 'crypto'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
 import { parseRequestBody, toDate } from '@/lib/route-helpers'
 import { registerSchema } from '@/lib/validations/auth'
+
+// 8자리 대문자 코드 생성 예: "ACAD-3F8K"
+function generateAcademyCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const part1 = Array.from(randomBytes(4)).map((b) => chars[b % chars.length]).join('')
+  const part2 = Array.from(randomBytes(4)).map((b) => chars[b % chars.length]).join('')
+  return `${part1}-${part2}`
+}
 
 export async function POST(request: Request) {
   const { data, error } = await parseRequestBody(request, registerSchema)
@@ -34,7 +43,8 @@ export async function POST(request: Request) {
     } else {
       const academy = await prisma.academy.create({
         data: {
-          name: 'AcadeMind',
+          name: 'ClassPilot',
+          code: generateAcademyCode(),
         },
         select: { id: true },
       })

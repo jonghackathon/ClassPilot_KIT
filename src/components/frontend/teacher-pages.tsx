@@ -38,7 +38,7 @@ import { TeacherAttendanceManager } from '@/components/attendance/teacher-attend
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
 
-type AssignmentType = '코딩' | '에세이' | '이미지'
+type AssignmentType = '문제풀이' | '에세이' | '이미지'
 
 type Lesson = {
   id: string
@@ -137,15 +137,15 @@ export function TeacherAttendancePage() {
 
 export function TeacherAssignmentsPage() {
   const assignments = [
-    { title: 'Python 반복문 실습', group: '중급 A반', due: '마감 D-2', progress: 67, href: '/teacher/assignments/python-loop', type: '코딩' as AssignmentType, summary: '코드 제출 + 간단한 설명 작성', asset: '코드 템플릿 제공' },
-    { title: 'HTML 포트폴리오 페이지', group: '초급 B반', due: '마감 D-5', progress: 33, href: '/teacher/assignments/html-portfolio', type: '이미지' as AssignmentType, summary: '레이아웃 캡처 이미지를 함께 제출', asset: '이미지 2장 업로드' },
-    { title: '리스트 컴프리헨션 연습', group: '중급 A반', due: '마감 D-12', progress: 84, href: '/teacher/assignments/list-comprehension', type: '에세이' as AssignmentType, summary: '풀이 과정과 개념 설명 중심', asset: 'AI 첨삭 사용 가능' },
+    { title: '비문학 독해 연습', group: '중급 A반', due: '마감 D-2', progress: 67, href: '/teacher/assignments/reading-practice', type: '문제풀이' as AssignmentType, summary: '지문 분석 + 문제 풀이 제출', asset: '워크북 제공' },
+    { title: '주제별 글쓰기', group: '초급 B반', due: '마감 D-5', progress: 33, href: '/teacher/assignments/topic-writing', type: '이미지' as AssignmentType, summary: '손글씨 원고 스캔 제출', asset: '이미지 2장 업로드' },
+    { title: '논술 개요 작성', group: '중급 A반', due: '마감 D-12', progress: 84, href: '/teacher/assignments/essay-outline', type: '에세이' as AssignmentType, summary: '서론-본론-결론 구조 중심', asset: 'AI 첨삭 사용 가능' },
   ]
   const [statusFilter, setStatusFilter] = useState<'전체' | '진행중' | '피드백 대기'>('전체')
   const [typeFilter, setTypeFilter] = useState<'전체' | AssignmentType>('전체')
   const [createOpen, setCreateOpen] = useState(false)
   const [batchOpen, setBatchOpen] = useState(false)
-  const [selectedType, setSelectedType] = useState<AssignmentType>('코딩')
+  const [selectedType, setSelectedType] = useState<AssignmentType>('문제풀이')
   const [attachmentName, setAttachmentName] = useState('이미지 첨부 없음')
 
   const filteredAssignments = assignments.filter((assignment) => {
@@ -204,7 +204,7 @@ export function TeacherAssignmentsPage() {
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
-            {(['전체', '코딩', '에세이', '이미지'] as const).map((type) => (
+            {(['전체', '문제풀이', '에세이', '이미지'] as const).map((type) => (
               <button
                 key={type}
                 className={cx(
@@ -229,7 +229,7 @@ export function TeacherAssignmentsPage() {
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-medium text-amber-600">{assignment.due}</p>
-                    <StatusBadge label={assignment.type} tone={assignment.type === '코딩' ? 'indigo' : assignment.type === '에세이' ? 'violet' : 'sky'} />
+                    <StatusBadge label={assignment.type} tone={assignment.type === '문제풀이' ? 'indigo' : assignment.type === '에세이' ? 'violet' : 'sky'} />
                   </div>
                   <h2 className="mt-2 text-2xl font-semibold text-slate-950">{assignment.title}</h2>
                   <p className="mt-2 text-sm text-slate-500">{assignment.group}</p>
@@ -251,7 +251,7 @@ export function TeacherAssignmentsPage() {
         <SurfaceCard className="h-fit">
           <SectionHeading title="과제 운영 메모" subtitle="유형별로 확인할 항목" />
           <div className="mt-5 space-y-3">
-            {['코딩: 실행 기준과 제출 형식', '에세이: AI 첨삭 허용 범위', '이미지: 캡처/스캔 업로드 규칙', '일괄 생성: 반별 동일 마감', '피드백 대기: 검토 기준 통일'].map((field) => (
+            {['문제풀이: 채점 기준과 제출 형식', '에세이: AI 첨삭 허용 범위', '이미지: 캡처/스캔 업로드 규칙', '일괄 생성: 반별 동일 마감', '피드백 대기: 검토 기준 통일'].map((field) => (
               <div key={field} className="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-sm text-slate-600">{field}</div>
             ))}
           </div>
@@ -271,7 +271,7 @@ export function TeacherAssignmentsPage() {
         description="반, 유형, 이미지 첨부, 안내 문구를 한 번에 채울 수 있는 프론트 모달입니다."
       >
         <div className="flex flex-wrap gap-2">
-          {(['코딩', '에세이', '이미지'] as const).map((type) => (
+          {(['문제풀이', '에세이', '이미지'] as const).map((type) => (
             <button
               key={type}
               className={cx(
@@ -322,7 +322,7 @@ export function TeacherAssignmentsPage() {
         <Field label="공통 마감일" defaultValue="2026-04-18" />
         <Field label="과제 묶음 제목" defaultValue="4월 2주차 주간 과제 세트" />
         <div className="space-y-3 rounded-[28px] bg-slate-50 p-4">
-          {['코딩 풀이 1개', '이미지 업로드 1개', '에세이형 질문 1개'].map((item) => (
+          {['문제풀이 1개', '이미지 업로드 1개', '에세이형 질문 1개'].map((item) => (
             <div key={item} className="rounded-2xl bg-white px-4 py-4 text-sm text-slate-700 ring-1 ring-slate-200">
               {item}
             </div>

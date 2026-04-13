@@ -38,7 +38,7 @@ type AssignmentSubmission = {
 type AssignmentDetail = {
   id: string
   title: string
-  type: 'CODING' | 'ESSAY' | 'IMAGE'
+  type: 'WORKBOOK' | 'ESSAY' | 'IMAGE'
   content: string | null
   teacherNote: string | null
   imageUrls: string[]
@@ -51,7 +51,7 @@ type AssignmentDetail = {
 type SubmissionEnvelope = ApiEnvelope<AssignmentSubmission>
 
 const typeLabels: Record<AssignmentDetail['type'], string> = {
-  CODING: '코딩',
+  WORKBOOK: '문제풀이',
   ESSAY: '서술',
   IMAGE: '이미지',
 }

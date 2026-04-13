@@ -312,6 +312,11 @@ export function AdminDashboardManagerPage() {
   const { data: assignmentsResponse, error: assignmentsError } = useSWR<
     ApiEnvelope<PaginatedData<AssignmentItem>>
   >('/api/assignments?limit=100', swrOptions)
+  const { data: academyResponse } = useSWR<
+    ApiEnvelope<{ id: string; name: string; code: string }>
+  >('/api/academy', swrOptions)
+
+  const academyCode = academyResponse?.data.code ?? null
 
   const students = useMemo(() => studentsResponse?.data.items ?? [], [studentsResponse])
   const classes = useMemo(() => classesResponse?.data.items ?? [], [classesResponse])
@@ -469,7 +474,7 @@ export function AdminDashboardManagerPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div className="rounded-3xl bg-slate-950 px-5 py-4 text-white">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-400">출석률</p>
                   <p className="mt-2 text-2xl font-semibold">
@@ -487,6 +492,13 @@ export function AdminDashboardManagerPage() {
                   <p className="mt-2 text-2xl font-semibold text-slate-900">
                     {recentConsultations.length}건
                   </p>
+                </div>
+                <div className="col-span-2 rounded-3xl border border-indigo-100 bg-indigo-50 px-5 py-4 sm:col-span-1">
+                  <p className="text-xs uppercase tracking-[0.22em] text-indigo-400">학원 코드</p>
+                  <p className="mt-2 text-xl font-bold tracking-[0.15em] text-indigo-700">
+                    {academyCode ?? '···'}
+                  </p>
+                  <p className="mt-1 text-xs text-indigo-500">수강생 로그인 시 사용</p>
                 </div>
               </div>
             </div>
