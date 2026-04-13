@@ -87,8 +87,15 @@ export async function POST(request: NextRequest) {
     })
   }
 
-  const studentIds = students.map((student) => student.id)
-  const classIds = [...new Set(students.flatMap((student) => student.enrollments.map((enrollment) => enrollment.classId)))]
+  const studentIds = students.map((student: { id: string }) => student.id)
+  const classIds = [
+    ...new Set(
+      students.flatMap(
+        (student: { enrollments: Array<{ classId: string }> }) =>
+          student.enrollments.map((enrollment: { classId: string }) => enrollment.classId),
+      ),
+    ),
+  ]
 
   const [attendanceRows, assignmentRows, submissionRows, questionRows] = await Promise.all([
     prisma.attendance.findMany({
@@ -167,7 +174,8 @@ export async function POST(request: NextRequest) {
   const calculatedAt = new Date()
 
   const items = await Promise.all(
-    students.map(async (student) => {
+    students.map(
+      async (student: { id: string; enrollments: Array<{ classId: string }> }) => {
       const studentAttendances = attendanceByStudent.get(student.id) ?? []
       const latestAttendance = studentAttendances[0]?.date ?? null
       const totalAttendanceCount = studentAttendances.length
@@ -180,17 +188,19 @@ export async function POST(request: NextRequest) {
 
       const recentClassAssignmentIds = [
         ...new Set(
-          student.enrollments.flatMap((enrollment) => assignmentsByClass.get(enrollment.classId) ?? []),
+          student.enrollments.flatMap(
+            (enrollment: { classId: string }) => assignmentsByClass.get(enrollment.classId) ?? [],
+          ),
         ),
       ]
       const studentSubmissions = submissionsByStudent.get(student.id) ?? []
       const submittedAssignmentIds = new Set(
         studentSubmissions
-          .filter((item) => item.status === 'SUBMITTED')
-          .map((item) => item.assignmentId),
+          .filter((item: { status: string }) => item.status === 'SUBMITTED')
+          .map((item: { assignmentId: string }) => item.assignmentId),
       )
       const missedAssignmentCount = recentClassAssignmentIds.filter(
-        (assignmentId) => !submittedAssignmentIds.has(assignmentId),
+        (assignmentId: string) => !submittedAssignmentIds.has(assignmentId),
       ).length
       const homeworkFactor = recentClassAssignmentIds.length
         ? clampScore((missedAssignmentCount / recentClassAssignmentIds.length) * 100)
@@ -233,7 +243,8 @@ export async function POST(request: NextRequest) {
           },
         },
       })
-    }),
+      },
+    ),
   )
 
   const dangerStudents = items
