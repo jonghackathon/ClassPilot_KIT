@@ -173,4 +173,3 @@ npm run start
 ## 비고
 
 `academy_backup/`는 과거 산출물/비교 리소스로 유지되고 있으며, 현재 운영은 `src/`와 `claude/`에 맞춰 정리합니다.
- 
