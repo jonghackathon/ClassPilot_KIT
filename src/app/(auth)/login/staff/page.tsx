@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FormEvent, useState, useTransition, Suspense } from 'react'
-import { signIn } from 'next-auth/react'
+import { signIn, getSession } from 'next-auth/react'
 import { ArrowLeft, ArrowRight, Eye, EyeOff, KeyRound, LoaderCircle, Mail } from 'lucide-react'
 
 type FieldErrors = {
@@ -26,6 +26,7 @@ function StaffLoginForm() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [infoMessage, setInfoMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [isPending, startTransition] = useTransition()
 
@@ -48,6 +49,7 @@ function StaffLoginForm() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setErrorMessage('')
+    setInfoMessage('')
     if (!validate()) return
 
     startTransition(async () => {
@@ -63,12 +65,15 @@ function StaffLoginForm() {
         return
       }
 
+      const session = await getSession()
+      const role = session?.user?.role
+
       const nextPath =
         callbackUrl && !callbackUrl.startsWith('/login')
           ? callbackUrl
           : result?.url && !result.url.includes('/login')
             ? result.url
-            : resolveRoleHome()
+            : resolveRoleHome(role as string | undefined)
 
       router.push(nextPath)
     })
@@ -104,6 +109,12 @@ function StaffLoginForm() {
             {errorMessage}
           </div>
         ) : null}
+
+        {infoMessage && (
+          <div className="rounded-2xl bg-indigo-50 px-4 py-3 text-sm text-indigo-700">
+            {infoMessage}
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="text-sm font-medium text-slate-700" htmlFor="email">
@@ -144,7 +155,7 @@ function StaffLoginForm() {
             </label>
             <button
               className="text-xs font-medium text-slate-500 transition hover:text-indigo-600"
-              onClick={() => setErrorMessage('비밀번호 재설정은 관리자에게 문의해 주세요.')}
+              onClick={() => { setInfoMessage('비밀번호 재설정은 관리자에게 문의해 주세요.'); setErrorMessage('') }}
               type="button"
             >
               비밀번호를 잊으셨나요?

@@ -9,6 +9,7 @@ import {
   Bot,
   BookCheck,
   BookOpenText,
+  FileText,
   CircleUserRound,
   GraduationCap,
   HeartPulse,
@@ -32,7 +33,7 @@ const navigation = [
   { href: '/teacher/bot', label: '질문봇', icon: Bot },
   { href: '/teacher/churn', label: '이탈 현황', icon: HeartPulse },
   { href: '/teacher/progress', label: '진도', icon: BookOpenText },
-  { href: '/teacher/reports', label: '보고서', icon: BookOpenText },
+  { href: '/teacher/reports', label: '보고서', icon: FileText },
   { href: '/teacher/memo', label: '메모', icon: NotebookPen },
 ]
 
@@ -64,6 +65,7 @@ export default function TeacherLayout({
 
   const isAlarmVisible = alarmOpen && alarmPath === pathname
   const isProfileVisible = profileOpen && profilePath === pathname
+  const isPopoverVisible = isAlarmVisible || isProfileVisible
 
   async function handleLogout() {
     await signOut({ callbackUrl: '/login' })
@@ -72,7 +74,7 @@ export default function TeacherLayout({
   return (
     <div className="min-h-dvh pb-24 md:pb-0">
       <div className="mx-auto max-w-[1280px] px-4 py-4 sm:px-6">
-        <header className="glass-panel rounded-[30px] border border-white/55 px-5 py-5">
+        <header className="glass-panel sticky top-4 z-20 rounded-[30px] border border-white/55 px-5 py-5">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-medium text-violet-600">AcadeMind Teacher</p>
@@ -89,6 +91,7 @@ export default function TeacherLayout({
               </div>
               <button
                 className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-violet-200 hover:text-violet-600"
+                aria-label="알림 열기"
                 onClick={() => {
                   setAlarmOpen((current) => !current)
                   setAlarmPath(pathname)
@@ -101,6 +104,7 @@ export default function TeacherLayout({
               </button>
               <button
                 className="flex h-11 items-center gap-3 rounded-2xl bg-slate-950 px-4 text-white"
+                aria-label="프로필 열기"
                 onClick={() => {
                   setProfileOpen((current) => !current)
                   setProfilePath(pathname)
@@ -113,14 +117,22 @@ export default function TeacherLayout({
               </button>
 
               {isAlarmVisible ? (
-                <NotificationPopover
-                  className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
-                  title="수업 알림"
-                />
+                <div
+                  className="absolute right-0 top-[calc(100%+12px)] z-30"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <NotificationPopover
+                    className="w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                    title="수업 알림"
+                  />
+                </div>
               ) : null}
 
               {isProfileVisible ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
+                <div
+                  className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <div className="rounded-[24px] bg-violet-600 px-4 py-4 text-white">
                     <p className="text-xs uppercase tracking-[0.22em] text-violet-100">Teacher</p>
                     <p className="mt-2 text-lg font-semibold">{displayName}</p>
@@ -131,7 +143,7 @@ export default function TeacherLayout({
                       <GraduationCap className="h-4 w-4" />
                       강사 홈
                     </Link>
-                    <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900" type="button">
+                    <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 opacity-50 cursor-not-allowed" type="button" disabled title="준비 중">
                       <Settings2 className="h-4 w-4" />
                       수업 알림 설정
                     </button>
@@ -173,7 +185,18 @@ export default function TeacherLayout({
           </nav>
         </header>
 
-        <main className="mx-auto max-w-[1200px] py-6">{children}</main>
+      <main className="mx-auto max-w-[1200px] py-6">{children}</main>
+          {isPopoverVisible ? (
+            <div
+              className="fixed inset-0 z-20"
+              onClick={() => {
+                setAlarmOpen(false)
+                setProfileOpen(false)
+                setAlarmPath(null)
+                setProfilePath(null)
+              }}
+            />
+          ) : null}
       </div>
 
       <nav

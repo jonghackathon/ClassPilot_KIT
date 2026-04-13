@@ -90,11 +90,13 @@ function CurriculumDialog({
   onClose,
   title,
   fields,
+  isReadOnly = false,
 }: {
   open: boolean
   onClose: () => void
   title: string
   fields: Array<{ label: string; defaultValue: string }>
+  isReadOnly?: boolean
 }) {
   if (!open) {
     return null
@@ -122,7 +124,19 @@ function CurriculumDialog({
           ))}
           <div className="flex justify-end gap-3 pt-2">
             <button className={secondaryButton} onClick={onClose} type="button">취소</button>
-            <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={onClose} type="button">저장</button>
+            <button
+              className={cx(
+                primaryButton,
+                'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20',
+                isReadOnly ? 'cursor-not-allowed opacity-70' : '',
+              )}
+              disabled={isReadOnly}
+              onClick={onClose}
+              title={isReadOnly ? 'API 연동 준비 중' : '저장'}
+              type="button"
+            >
+              저장
+            </button>
           </div>
         </div>
       </div>
@@ -134,6 +148,7 @@ export function CurriculumPage() {
   const [selectedCourseId, setSelectedCourseId] = useState(courses[0].id)
   const [selectedStageId, setSelectedStageId] = useState(courses[0].stages[0].id)
   const [dialog, setDialog] = useState<'course' | 'stage' | 'lesson' | null>(null)
+  const isReadOnly = true
 
   const selectedCourse = courses.find((course) => course.id === selectedCourseId) ?? courses[0]
   const selectedStage = selectedCourse.stages.find((stage) => stage.id === selectedStageId) ?? selectedCourse.stages[0]
@@ -153,6 +168,9 @@ export function CurriculumPage() {
 
   return (
     <div className="space-y-6">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        현재 커리큘럼 편집은 API 연동 준비 중이라 저장/수정/추가 동작이 반영되지 않습니다. 현재 화면은 조회/미리보기 용입니다.
+      </div>
       <PageHero
         eyebrow="커리큘럼"
         title="반별 커리큘럼 구조를 클래스-단계-차시 단위로 관리해요"
@@ -160,7 +178,17 @@ export function CurriculumPage() {
         backHref="/admin/dashboard"
         backLabel="운영자 홈"
         action={
-          <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setDialog('lesson')} type="button">
+          <button
+            className={cx(
+              primaryButton,
+              'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20',
+              isReadOnly ? 'cursor-not-allowed opacity-70' : '',
+            )}
+            disabled={isReadOnly}
+            onClick={() => setDialog('lesson')}
+            title={isReadOnly ? 'API 연동 준비 중' : '차시 추가'}
+            type="button"
+          >
             <Plus className="h-4 w-4" />
             차시 추가
           </button>
@@ -180,7 +208,16 @@ export function CurriculumPage() {
             title="커리큘럼 트리"
             subtitle="클래스를 먼저 고르고 단계와 차시를 이어서 관리합니다."
             action={
-              <button className={secondaryButton} onClick={() => setDialog('course')} type="button">
+              <button
+                className={cx(
+                  secondaryButton,
+                  isReadOnly ? 'cursor-not-allowed opacity-70' : '',
+                )}
+                disabled={isReadOnly}
+                onClick={() => setDialog('course')}
+                title={isReadOnly ? 'API 연동 준비 중' : '코스 추가'}
+                type="button"
+              >
                 <Plus className="h-4 w-4" />
                 코스 추가
               </button>
@@ -243,8 +280,31 @@ export function CurriculumPage() {
               subtitle={`${selectedCourse.title} 안에서 관리되는 단계입니다.`}
               action={
                 <div className="flex flex-wrap gap-2">
-                  <button className={secondaryButton} onClick={() => setDialog('stage')} type="button">단계 수정</button>
-                  <button className={cx(primaryButton, 'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20')} onClick={() => setDialog('lesson')} type="button">차시 추가</button>
+                  <button
+                    className={cx(
+                      secondaryButton,
+                      isReadOnly ? 'cursor-not-allowed opacity-70' : '',
+                    )}
+                    disabled={isReadOnly}
+                    onClick={() => setDialog('stage')}
+                    title={isReadOnly ? 'API 연동 준비 중' : '단계 수정'}
+                    type="button"
+                  >
+                    단계 수정
+                  </button>
+                  <button
+                    className={cx(
+                      primaryButton,
+                      'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20',
+                      isReadOnly ? 'cursor-not-allowed opacity-70' : '',
+                    )}
+                    disabled={isReadOnly}
+                    onClick={() => setDialog('lesson')}
+                    title={isReadOnly ? 'API 연동 준비 중' : '차시 추가'}
+                    type="button"
+                  >
+                    차시 추가
+                  </button>
                 </div>
               }
             />
@@ -299,6 +359,7 @@ export function CurriculumPage() {
           { label: '레벨', defaultValue: '중등 심화' },
           { label: '담당 강사', defaultValue: '박강사' },
         ]}
+        isReadOnly={isReadOnly}
         onClose={() => setDialog(null)}
         open={dialog === 'course'}
         title="코스 추가"
@@ -308,6 +369,7 @@ export function CurriculumPage() {
           { label: '단계 이름', defaultValue: selectedStage.title },
           { label: '학습 목표', defaultValue: selectedStage.objective },
         ]}
+        isReadOnly={isReadOnly}
         onClose={() => setDialog(null)}
         open={dialog === 'stage'}
         title="단계 수정"
@@ -317,6 +379,7 @@ export function CurriculumPage() {
           { label: '차시 이름', defaultValue: `${selectedStage.title} 신규 차시` },
           { label: '수업 요약', defaultValue: '예제와 활동 목표를 간단히 정리합니다.' },
         ]}
+        isReadOnly={isReadOnly}
         onClose={() => setDialog(null)}
         open={dialog === 'lesson'}
         title="차시 추가"

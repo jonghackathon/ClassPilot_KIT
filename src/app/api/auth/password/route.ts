@@ -15,8 +15,12 @@ export async function POST(request: Request) {
 
   const parsed = await parseRequestBody(request, passwordSchema)
 
-  if (parsed.error || !parsed.data) {
+  if (parsed.error) {
     return parsed.error
+  }
+
+  if (!parsed.data) {
+    return errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400)
   }
 
   const user = await prisma.user.findUnique({

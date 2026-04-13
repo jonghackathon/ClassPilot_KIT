@@ -33,6 +33,7 @@ export function NotificationPopover({
         <div className="flex items-center gap-2">
           <button
             className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+            aria-label="알림 새로고침"
             onClick={() => void mutate()}
             type="button"
           >

@@ -10,6 +10,7 @@ import {
   BookOpen,
   CalendarDays,
   CircleDollarSign,
+  GraduationCap,
   LayoutGrid,
   LogOut,
   Menu,
@@ -29,7 +30,7 @@ const navigation = [
   { href: '/admin/students', label: '학생 관리', icon: Users },
   { href: '/admin/teachers', label: '강사 관리', icon: UserSquare2 },
   { href: '/admin/classes', label: '반 관리', icon: BookOpen },
-  { href: '/admin/curriculum', label: '커리큘럼', icon: BookOpen },
+  { href: '/admin/curriculum', label: '커리큘럼', icon: GraduationCap },
   { href: '/admin/schedule', label: '시간표', icon: CalendarDays },
   { href: '/admin/payments', label: '수강료', icon: CircleDollarSign },
   { href: '/admin/churn', label: '이탈 예측', icon: AlertTriangle },
@@ -49,7 +50,7 @@ export default function AdminLayout({
   const [mobileNavPath, setMobileNavPath] = useState<string | null>(null)
   const [alarmPath, setAlarmPath] = useState<string | null>(null)
   const [profilePath, setProfilePath] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const searchQuery = ''
 
   const displayName = session?.user?.name ?? '운영 관리자'
   const displayEmail = session?.user?.email ?? 'admin@academind.kr'
@@ -67,6 +68,7 @@ export default function AdminLayout({
   const isMobileNavVisible = mobileNavOpen && mobileNavPath === pathname
   const isAlarmVisible = alarmOpen && alarmPath === pathname
   const isProfileVisible = profileOpen && profilePath === pathname
+  const isPopoverVisible = isAlarmVisible || isProfileVisible
 
   async function handleLogout() {
     await signOut({ callbackUrl: '/login' })
@@ -112,7 +114,7 @@ export default function AdminLayout({
           <div className="rounded-[24px] border border-slate-200 bg-white/85 p-4 text-sm text-slate-600">
             <p className="font-semibold text-slate-800">오늘의 리스크</p>
             <p className="mt-2 leading-6">
-              미납 3건, 출석 하락 2명, 확인 대기 민원 4건이 감지되었습니다.
+              실시간 연동 데이터가 준비되는 즉시 표시됩니다.
             </p>
           </div>
         </aside>
@@ -123,6 +125,7 @@ export default function AdminLayout({
               <div className="flex items-center gap-3 lg:hidden">
                 <button
                   className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white/85 text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
+                  aria-label="메뉴 열기"
                   onClick={() => {
                     setMobileNavOpen(true)
                     setMobileNavPath(pathname)
@@ -145,9 +148,10 @@ export default function AdminLayout({
                 <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500 sm:min-w-[320px]">
                   <Search className="h-4 w-4" />
                   <input
+                    aria-label="검색 기능은 준비 중입니다"
+                    disabled
                     className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                    placeholder="학생, 반, 결제, 민원을 검색해 보세요"
+                    placeholder="검색 기능은 준비 중입니다"
                     value={searchQuery}
                   />
                 </label>
@@ -155,6 +159,7 @@ export default function AdminLayout({
                 <div className="relative flex items-center gap-3 self-end sm:self-auto">
                   <button
                     className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
+                    aria-label="알림 열기"
                     onClick={() => {
                       setAlarmOpen((current) => !current)
                       setAlarmPath(pathname)
@@ -167,6 +172,7 @@ export default function AdminLayout({
                   </button>
                   <button
                     className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-left transition hover:border-indigo-200"
+                    aria-label="프로필 열기"
                     onClick={() => {
                       setProfileOpen((current) => !current)
                       setProfilePath(pathname)
@@ -181,14 +187,22 @@ export default function AdminLayout({
                   </button>
 
                   {isAlarmVisible ? (
-                    <NotificationPopover
-                      className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
-                      title="알림 센터"
-                    />
+                    <div
+                      className="absolute right-0 top-[calc(100%+12px)] z-30"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <NotificationPopover
+                        className="w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                        title="알림 센터"
+                      />
+                    </div>
                   ) : null}
 
                   {isProfileVisible ? (
-                    <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
+                    <div
+                      className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                      onClick={(event) => event.stopPropagation()}
+                    >
                       <div className="rounded-[24px] bg-slate-950 px-4 py-4 text-white">
                         <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Workspace</p>
                         <p className="mt-2 text-lg font-semibold">{displayName}</p>
@@ -199,7 +213,7 @@ export default function AdminLayout({
                           <UserRound className="h-4 w-4" />
                           내 대시보드
                         </Link>
-                        <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900" type="button">
+                        <button className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 opacity-50 cursor-not-allowed" type="button" disabled title="준비 중">
                           <Settings2 className="h-4 w-4" />
                           알림 설정
                         </button>
@@ -218,6 +232,18 @@ export default function AdminLayout({
               </div>
             </div>
           </header>
+
+          {isPopoverVisible ? (
+            <div
+              className="fixed inset-0 z-20"
+              onClick={() => {
+                setAlarmOpen(false)
+                setProfileOpen(false)
+                setAlarmPath(null)
+                setProfilePath(null)
+              }}
+            />
+          ) : null}
 
           <main className="min-h-[calc(100vh-8rem)]">{children}</main>
         </div>

@@ -85,8 +85,21 @@ export async function POST(request: Request) {
 
   const { data, error: validationError } = await parseRequestBody(request, attendanceCreateSchema)
 
-  if (validationError || !data) {
+  if (validationError) {
     return validationError
+  }
+
+  if (!data) {
+    return Response.json(
+      {
+        success: false,
+        error: {
+          code: 'VALIDATION',
+          message: '입력값이 올바르지 않습니다.',
+        },
+      },
+      { status: 400 },
+    )
   }
 
   const foundClass = await prisma.class.findFirst({

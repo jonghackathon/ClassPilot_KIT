@@ -8,12 +8,13 @@ const teacherMembersSchema = z.object({
   teacherIds: z.array(z.string().cuid()).default([]),
 })
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await withAuth(['ADMIN'])
   if (error) return error
+  const { id } = await params
 
   const teachers = await prisma.classTeacher.findMany({
-    where: { classId: params.id },
+    where: { classId: id },
     include: {
       teacher: {
         select: { id: true, name: true, email: true, role: true, phone: true },
@@ -25,9 +26,10 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   return successResponse({ teachers })
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { error } = await withAuth(['ADMIN'])
   if (error) return error
+  const { id } = await params
 
   const body = await request.json().catch(() => null)
   const parsed = teacherMembersSchema.safeParse(body)
@@ -37,13 +39,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   await prisma.classTeacher.deleteMany({
-    where: { classId: params.id },
+    where: { classId: id },
   })
 
   if (parsed.data.teacherIds.length > 0) {
     await prisma.classTeacher.createMany({
       data: parsed.data.teacherIds.map((teacherId) => ({
-        classId: params.id,
+        classId: id,
         teacherId,
       })),
       skipDuplicates: true,
@@ -51,7 +53,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
   }
 
   const teachers = await prisma.classTeacher.findMany({
-    where: { classId: params.id },
+    where: { classId: id },
     include: {
       teacher: {
         select: { id: true, name: true, email: true, role: true, phone: true },
