@@ -2,8 +2,10 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
+import { teacherHasClassAccess } from '@/lib/access-scope'
 import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
 import { prisma } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
 import { withAuth } from '@/lib/with-auth'
 
 const essayFeedbackSchema = z.object({
@@ -60,6 +62,9 @@ function extractText(response: Awaited<ReturnType<ReturnType<typeof getClaudeCli
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitError = rateLimit(request, { limit: 10, windowMs: 60_000 })
+  if (rateLimitError) return rateLimitError
+
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
   if (error || !session) {
@@ -85,6 +90,13 @@ export async function POST(request: NextRequest) {
 
   if (!assignment || assignment.class.academyId !== session.user.academyId) {
     return errorResponse('NOT_FOUND', '과제를 찾을 수 없습니다.', 404)
+  }
+
+  if (
+    session.user.role === 'TEACHER' &&
+    !(await teacherHasClassAccess(session.user.id, assignment.classId))
+  ) {
+    return errorResponse('FORBIDDEN', '담당 반 과제만 피드백을 생성할 수 있습니다.', 403)
   }
 
   const fallback = fallbackFeedback({

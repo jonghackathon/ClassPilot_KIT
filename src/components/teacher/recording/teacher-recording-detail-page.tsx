@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Copy } from 'lucide-react'
 
 import { PageHero, StatusBadge, SurfaceCard } from '@/components/frontend/common'
@@ -34,12 +34,27 @@ type RecordingDetail = {
   }
 }
 
+const POLLING_INTERVAL_MS = 5000
+const POLLING_TIMEOUT_MS = 5 * 60 * 1000 // 5분
+
 export function TeacherRecordingDetailPage({ id }: { id: string }) {
   const [copied, setCopied] = useState(false)
+  const pollingStartRef = useRef<number | null>(null)
   const { data, isLoading } = useRecordings<ApiEnvelope<RecordingDetail>>(
     `/api/recordings/${id}`,
-    (latestData: ApiEnvelope<RecordingDetail> | undefined) =>
-      latestData?.data.status === 'PROCESSING' ? 3000 : 0,
+    (latestData: ApiEnvelope<RecordingDetail> | undefined) => {
+      if (latestData?.data.status !== 'PROCESSING') {
+        pollingStartRef.current = null
+        return 0
+      }
+      if (pollingStartRef.current === null) {
+        pollingStartRef.current = Date.now()
+      }
+      if (Date.now() - pollingStartRef.current >= POLLING_TIMEOUT_MS) {
+        return 0
+      }
+      return POLLING_INTERVAL_MS
+    },
   )
   const item = data?.data
 
@@ -61,6 +76,11 @@ export function TeacherRecordingDetailPage({ id }: { id: string }) {
     return <SurfaceCard><p className="text-sm text-slate-500">녹음 상세를 찾을 수 없습니다.</p></SurfaceCard>
   }
 
+  const pollingTimedOut =
+    item.status === 'PROCESSING' &&
+    pollingStartRef.current !== null &&
+    Date.now() - pollingStartRef.current >= POLLING_TIMEOUT_MS
+
   return (
     <div className="space-y-6">
       <PageHero
@@ -76,6 +96,14 @@ export function TeacherRecordingDetailPage({ id }: { id: string }) {
           />
         }
       />
+
+      {pollingTimedOut ? (
+        <SurfaceCard>
+          <p className="text-sm text-amber-700">
+            전사 처리 시간이 예상보다 길어지고 있습니다. 페이지를 새로고침하거나 잠시 후 다시 확인해 주세요.
+          </p>
+        </SurfaceCard>
+      ) : null}
 
       <SurfaceCard>
         <div className="flex items-center justify-between gap-4">

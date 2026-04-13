@@ -21,6 +21,7 @@ type ComplaintDraftPromptInput = {
   studentName: string
   complaintTitle?: string | null
   complaintContent: string
+  toneHint?: string | null
 }
 
 function renderSections(sections: PromptSection[]) {
@@ -135,6 +136,10 @@ export function buildComplaintDraftPrompt(input: ComplaintDraftPromptInput) {
     {
       heading: '민원 내용',
       content: input.complaintContent,
+    },
+    {
+      heading: '답변 톤 지침',
+      content: input.toneHint ?? null,
     },
     {
       heading: '출력 지침',

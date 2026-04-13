@@ -56,6 +56,7 @@ type CopilotSessionDetail = {
 
 export function TeacherCopilotSessionPage({ lessonId }: { lessonId: string }) {
   const [isCreating, setIsCreating] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
   const lessonKey = `/api/lessons/${lessonId}`
   const sessionsKey = `/api/copilot/sessions?lessonId=${lessonId}&limit=10`
   const { data: lessonResponse, isLoading: lessonLoading } = useCopilot<ApiEnvelope<LessonDetail>>(lessonKey)
@@ -71,6 +72,7 @@ export function TeacherCopilotSessionPage({ lessonId }: { lessonId: string }) {
     if (!lesson) return
 
     setIsCreating(true)
+    setCreateError(null)
     try {
       await apiRequest('/api/copilot/sessions', {
         method: 'POST',
@@ -80,6 +82,10 @@ export function TeacherCopilotSessionPage({ lessonId }: { lessonId: string }) {
         }),
       })
       await mutate(sessionsKey)
+    } catch (caught) {
+      setCreateError(
+        caught instanceof Error ? caught.message : '세션을 시작하지 못했습니다. 다시 시도해 주세요.',
+      )
     } finally {
       setIsCreating(false)
     }
@@ -130,6 +136,11 @@ export function TeacherCopilotSessionPage({ lessonId }: { lessonId: string }) {
               세션 시작
             </button>
           </div>
+          {createError ? (
+            <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              {createError}
+            </p>
+          ) : null}
         </SurfaceCard>
       ) : sessionLoading || sessionDetailLoading || !sessionDetailResponse?.data ? (
         <SurfaceCard>

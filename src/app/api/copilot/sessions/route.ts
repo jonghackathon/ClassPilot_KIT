@@ -121,6 +121,19 @@ export async function POST(request: Request) {
       return errorResponse('FORBIDDEN', '담당 반 수업에만 코파일럿 세션을 만들 수 있습니다.', 403)
     }
 
+    const existingActive = await prisma.copilotSession.findFirst({
+      where: {
+        lessonId: data.lessonId,
+        teacherId: session.user.id,
+        status: 'ACTIVE',
+      },
+      select: { id: true },
+    })
+
+    if (existingActive) {
+      return errorResponse('CONFLICT', '이미 진행 중인 코파일럿 세션이 있습니다.', 409)
+    }
+
     const created = await prisma.copilotSession.create({
       data: {
         lessonId: data.lessonId,

@@ -4,12 +4,14 @@ import path from 'node:path'
 
 import { toFile } from 'openai'
 import { after } from 'next/server'
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
 import { getOpenAIClient, getWhisperModel } from '@/lib/ai/openai'
 import { getTeacherClassIds, teacherHasClassAccess } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
 import { parseRequestBody } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
@@ -152,7 +154,10 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitError = rateLimit(request, { limit: 5, windowMs: 60_000 })
+  if (rateLimitError) return rateLimitError
+
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
   if (error || !session?.user) {

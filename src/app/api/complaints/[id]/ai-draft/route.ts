@@ -94,6 +94,7 @@ export async function POST(
             studentName: complaint.student.name,
             complaintTitle: complaint.content.split('\n')[0] ?? null,
             complaintContent: complaint.content,
+            toneHint: data.toneHint ?? null,
           }),
         },
       ],

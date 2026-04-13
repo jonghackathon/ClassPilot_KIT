@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
@@ -5,6 +6,7 @@ import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
 import { buildCopilotAnswerPrompt } from '@/lib/ai/prompts'
 import { teacherHasClassAccess } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
+import { rateLimit } from '@/lib/rate-limit'
 import { parseRequestBody } from '@/lib/route-helpers'
 import { withAuth } from '@/lib/with-auth'
 
@@ -19,6 +21,18 @@ const answerSchema = z.object({
   advanced: z.string(),
   summary: z.string(),
 })
+
+function fallbackAnswer(question: string, topic?: string | null) {
+  const normalized = question.trim()
+  const lessonTopic = topic?.trim() || '현재 수업 주제'
+  return {
+    beginner: `${lessonTopic}에서 "${normalized}"는 일상에서 자주 접하는 개념입니다. 간단한 예시를 들어 설명해 보겠습니다.`,
+    example: `${lessonTopic}와 연결된 예제: "${normalized}"를 직접 적용해 보는 한 가지 사례를 확인해 보세요.`,
+    advanced: `"${normalized}"에서 조건이 바뀌면 어떻게 달라질까요? 비슷한 상황을 떠올려 보세요.`,
+    summary: `${lessonTopic} 기준으로 "${normalized}"의 핵심 개념, 예제, 확장 질문을 정리했습니다.`,
+    usedCards: ['beginner', 'example', 'advanced', 'summary'],
+  }
+}
 
 async function generateCopilotAnswer(question: string, topic?: string | null) {
   const client = getClaudeClient()
@@ -35,21 +49,24 @@ async function generateCopilotAnswer(question: string, topic?: string | null) {
 
   const jsonMatch = rawText.match(/\{[\s\S]*\}/)
   if (!jsonMatch) {
-    throw new Error('Claude 응답에서 JSON을 파싱할 수 없습니다.')
+    return fallbackAnswer(question, topic)
   }
 
-  const parsed = answerSchema.safeParse(JSON.parse(jsonMatch[0]))
-  if (!parsed.success) {
-    throw new Error('Claude 응답 형식이 올바르지 않습니다.')
-  }
-
-  return {
-    ...parsed.data,
-    usedCards: ['beginner', 'example', 'advanced', 'summary'],
+  try {
+    const parsed = answerSchema.safeParse(JSON.parse(jsonMatch[0]))
+    if (!parsed.success) {
+      return fallbackAnswer(question, topic)
+    }
+    return { ...parsed.data, usedCards: ['beginner', 'example', 'advanced', 'summary'] }
+  } catch {
+    return fallbackAnswer(question, topic)
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const rateLimitError = rateLimit(request, { limit: 20, windowMs: 60_000 })
+  if (rateLimitError) return rateLimitError
+
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
   if (error || !session?.user) {
@@ -90,7 +107,9 @@ export async function POST(request: Request) {
     }
 
     const topic = copilotSession.topic ?? copilotSession.lesson.topic
-    const answer = await generateCopilotAnswer(data.question, topic)
+    const answer = await generateCopilotAnswer(data.question, topic).catch(() =>
+      fallbackAnswer(data.question, topic),
+    )
 
     const created = await prisma.copilotQuestion.create({
       data: {

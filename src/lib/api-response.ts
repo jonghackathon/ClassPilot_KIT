@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'VALIDATION'
   | 'CONFLICT'
+  | 'RATE_LIMIT'
   | 'INTERNAL'
 
 export function successResponse<T>(data: T, status = 200) {
