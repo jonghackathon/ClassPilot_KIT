@@ -213,7 +213,20 @@ export default async function Page({ params }: { params: Promise<{ lessonId: str
 ```
 
 **`teacher/copilot/page.tsx` (목록):**
-현재 하드코딩 → GET /api/lessons?date=today 로 오늘 수업 목록 실연결.
+현재 하드코딩 → 오늘 수업 목록 실연결.
+
+**lessons API 추가 작업 필요:**
+
+| 필요 기능 | 현재 상태 | 처리 방법 |
+|---------|---------|---------|
+| 세션 페이지 — lesson.topic 단건 조회 | `GET /api/lessons/[id]` 없음 | `src/app/api/lessons/[id]/route.ts` 신규 추가 |
+| 랜딩 페이지 — 오늘 수업 목록 | `GET /api/lessons`에 date 필터 없음 | 기존 route에 `from`, `to` 쿼리 파라미터 추가 |
+
+랜딩 페이지 호출 예시:
+```
+GET /api/lessons?from=2026-04-13&to=2026-04-13
+```
+`date=today` 같은 특수 키워드는 사용하지 않는다. `from`/`to`는 ISO date string으로 받아 Prisma `date: { gte, lte }` 필터로 처리.
 
 ### 로딩 UI
 
@@ -283,9 +296,20 @@ const [isDraftGenerating, setIsDraftGenerating] = useState(false)
 
 | 파일 | 상태 |
 |------|------|
-| `src/app/api/reports/route.ts` | GET(목록)/POST ✅ 완성 |
+| `src/app/api/reports/route.ts` | GET(목록)/POST — **버그 있음, 수정 필요** |
 | `src/app/api/reports/[id]/route.ts` | GET/PATCH/DELETE ✅ 완성 |
 | `src/app/api/reports/generate/route.ts` | POST ✅ 데이터 수집 완성, **AI 호출만 없음** |
+
+**`reports/route.ts` POST 버그:**
+POST 핸들러에서 `teacherStudentIds`를 선언하지 않고 참조한다.
+TEACHER가 POST 요청 시 `ReferenceError: teacherStudentIds is not defined` 런타임 에러 발생.
+AI 연결 전에 반드시 먼저 수정한다.
+
+```typescript
+// 수정: POST 핸들러 내부 상단에 추가
+const teacherStudentIds =
+  session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
+```
 
 ### 수정 내용 (`src/app/api/reports/generate/route.ts`)
 
@@ -419,6 +443,30 @@ const [recordingId, setRecordingId] = useState<string | null>(null)
 
 > `src/app/api/reviews/route.ts`는 수동 CRUD용. 생성 route를 별도 분리.
 
+**스키마 선행 작업 필요:**
+
+현재 `ReviewSummary`에 `@@unique([lessonId, studentId])`가 없다.
+같은 수업에 같은 학생 복습이 중복 생성될 수 있어 upsert가 불가능하다.
+
+**결정: `@@unique([lessonId, studentId])` 추가 + migration 실행.**
+
+```prisma
+// prisma/schema.prisma 수정
+model ReviewSummary {
+  // ... 기존 필드 유지 ...
+
+  @@unique([lessonId, studentId])  // 추가
+}
+```
+
+> 주의: `lessonId`가 `String?`(nullable)이므로 unique 제약은 lessonId가 null이 아닌 경우에만 적용된다.
+> generate route는 lessonId를 필수로 받으므로 null 충돌 없음.
+> 단, 기존 수동 POST로 lessonId 없이 생성된 레코드가 있다면 migration 전 데이터 확인 필요.
+
+```bash
+npx prisma migrate dev --name add_review_summary_unique
+```
+
 ```
 POST /api/reviews/generate
 권한: ADMIN, TEACHER
@@ -428,7 +476,7 @@ body: { lessonId: string, studentIds: string[] }
 2. WeekNote 조회 (content, studentReaction)
 3. WeekNote 없으면 422 에러 ("수업 내용 기록이 없어 복습 생성 불가")
 4. Claude 호출 → { summary, quiz[], preview }
-5. studentIds 각각에 ReviewSummary upsert (lessonId+studentId 복합키)
+5. studentIds 각각에 ReviewSummary upsert (@@unique([lessonId, studentId]) 기준)
 6. 생성 목록 반환
 ```
 
@@ -493,8 +541,18 @@ level:
   score 30~59 → WARNING
   score ≥ 60  → DANGER
 
-ChurnPrediction upsert (studentId 기준)
+ChurnPrediction.create (이력 누적, upsert 아님)
 반환: DANGER 학생 목록
+```
+
+**upsert 대신 create를 쓰는 이유:**
+`ChurnPrediction`에는 `studentId`에 대한 `@@unique`가 없다.
+모델에 `@@index([studentId, calculatedAt])`가 있고 `calculatedAt` 컬럼이 별도로 존재하는 것은
+**일별 이력 누적이 설계 의도**임을 뜻한다.
+기존 read API도 `orderBy: [{ calculatedAt: 'desc' }]`로 학생별 최신 1건을 읽는 구조다.
+스키마 변경 없이 `create`만으로 구현 가능하며, 과거 예측 이력도 자동 보존된다.
+
+```
 ```
 
 ### Vercel Cron 설정 (`vercel.json` 신규)
@@ -580,6 +638,7 @@ npm install @anthropic-ai/sdk openai
 | `src/lib/ai/openai.ts` | OpenAI SDK 클라이언트 |
 | `src/lib/ai/prompts.ts` | 프롬프트 템플릿 함수 |
 | `src/app/api/ai/essay-feedback/route.ts` | 에세이 피드백 초안 |
+| `src/app/api/lessons/[id]/route.ts` | Lesson 단건 조회 (Copilot 세션 페이지용) |
 | `src/app/api/reviews/generate/route.ts` | 복습 자동 생성 |
 | `src/app/api/churn/batch/route.ts` | 이탈 예측 배치 |
 | `src/app/api/complaints/[id]/ai-draft/route.ts` | 민원 AI 초안 |
@@ -604,9 +663,12 @@ npm install @anthropic-ai/sdk openai
 | 파일 | 내용 |
 |------|------|
 | `src/app/api/copilot/sessions/[id]/route.ts` | title/context 제거, status enum 수정 |
+| `src/app/api/reports/route.ts` | POST 핸들러 teacherStudentIds 선언 누락 버그 수정 |
 | `src/app/api/reports/generate/route.ts` | Claude API 호출 추가 (데이터 수집 로직 유지) |
+| `src/app/api/lessons/route.ts` | from/to 쿼리 파라미터 필터 추가 |
 | `src/app/teacher/copilot/[lessonId]/page.tsx` | lessonId prop 전달 |
 | `src/components/frontend/teacher-pages.tsx` | Copilot/Recording 컴포넌트 제거 (분리 후) |
+| `prisma/schema.prisma` | ReviewSummary에 `@@unique([lessonId, studentId])` 추가 |
 
 ### 삭제
 
@@ -652,22 +714,47 @@ export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 ## 구현 순서 (권장)
 
 ```
-1. SDK 설치 + 공통 인프라 (claude.ts, openai.ts, prompts.ts)
-2. 빈 /api/ai/ 하위 디렉토리 6개 삭제
-3. Copilot route 전면 재작성 + 화면 분리 (teacher-pages.tsx → 전용 파일)
-   → sessions/route.ts, questions/route.ts, sessions/[id]/route.ts 동시 수정
-   → TeacherCopilotLandingPage, TeacherCopilotSessionPage 분리 + API 연결
-4. Recording route 전면 재작성 + 화면 분리
-   → recordings/route.ts 동시 수정
-   → TeacherRecordingPage 분리 + API 연결
-5. Reports AI 연결 + 화면 분리
-   → reports/generate/route.ts Claude 호출 추가
-   → ReportsPage → ReportsManager 분리 + API 연결
-6. 에세이 피드백 route 신규 + 피드백 모달 버튼 추가
-7. 민원 AI 초안 route 신규 + 모달 버튼 추가
-8. 복습 자동 생성 route 신규 + progress 페이지 버튼 추가
-9. 이탈 예측 배치 route 신규 + vercel.json Cron 설정
-10. Spinner 컴포넌트 추가 + 전체 로딩 UI 체크리스트 완성
+1. SDK 설치 + 공통 인프라
+   - npm install @anthropic-ai/sdk openai
+   - src/lib/ai/claude.ts, openai.ts, prompts.ts 생성
+   - 빈 /api/ai/ 하위 디렉토리 6개 삭제
+
+2. 스키마 변경 + migration
+   - ReviewSummary에 @@unique([lessonId, studentId]) 추가
+   - npx prisma migrate dev --name add_review_summary_unique
+
+3. Copilot route 전면 재작성 + lessons API 보강 + 화면 분리 (묶음)
+   - sessions/route.ts, questions/route.ts, sessions/[id]/route.ts 재작성
+   - lessons/route.ts에 from/to 필터 추가
+   - lessons/[id]/route.ts 신규 추가
+   - TeacherCopilotLandingPage, TeacherCopilotSessionPage 분리 + API 연결
+   - Spinner 공통 컴포넌트 추가
+
+4. Recording route 전면 재작성 + 화면 분리 (묶음)
+   - recordings/route.ts, recordings/[id]/route.ts 재작성
+   - TeacherRecordingPage, TeacherRecordingDetailPage 분리 + API 연결
+
+5. Reports 버그 수정 + AI 연결 + 화면 분리 (묶음)
+   - reports/route.ts POST 버그 수정 (teacherStudentIds 선언 추가)
+   - reports/generate/route.ts Claude 호출 교체
+   - ReportsPage → ReportsManager 분리 + API 연결
+
+6. 에세이 피드백
+   - api/ai/essay-feedback/route.ts 신규
+   - 피드백 모달(M-T04)에 "AI 초안 생성" 버튼 추가
+
+7. 민원 AI 초안
+   - complaints/[id]/ai-draft/route.ts 신규
+   - admin-complaints-manager.tsx에 버튼 추가
+
+8. 복습 자동 생성
+   - reviews/generate/route.ts 신규
+   - teacher/progress 페이지에 "복습 생성" 버튼 추가
+
+9. 이탈 예측 배치
+   - churn/batch/route.ts 신규
+   - vercel.json Cron 설정
+   - admin/churn 페이지에 수동 갱신 버튼 추가
 ```
 
 ---
