@@ -56,8 +56,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const id = await getRouteId(context)
   const { data, error: validationError } = await parseRequestBody(request, attendanceUpdateSchema)
 
-  if (validationError || !data) {
+  if (validationError) {
     return validationError
+  }
+
+  if (!data) {
+    return errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400)
   }
 
   const found = await prisma.attendance.findFirst({
