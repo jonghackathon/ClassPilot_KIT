@@ -9,3 +9,7 @@ export const complaintCreateSchema = z.object({
 })
 
 export const complaintUpdateSchema = complaintCreateSchema.partial()
+
+export const complaintAiDraftSchema = z.object({
+  toneHint: z.string().trim().optional().nullable(),
+})
