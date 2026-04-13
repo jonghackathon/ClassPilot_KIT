@@ -279,7 +279,7 @@ export function AdminTeachersManagerPage() {
         tone: 'rose',
         title: '강사 등록에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)
@@ -306,7 +306,7 @@ export function AdminTeachersManagerPage() {
         tone: 'rose',
         title: '비활성 처리에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsDeletingId(null)
@@ -422,7 +422,7 @@ export function AdminTeachersManagerPage() {
 
           {!isLoading && error ? (
             <div className="rounded-[32px] border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">
-              강사 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+              강사 준비 중입니다.
             </div>
           ) : null}
 

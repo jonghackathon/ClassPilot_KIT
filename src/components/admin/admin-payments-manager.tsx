@@ -330,7 +330,7 @@ export function AdminPaymentsManagerPage() {
         tone: 'rose',
         title: '수납 저장에 실패했습니다.',
         description:
-          error instanceof Error ? error.message : '잠시 후 다시 시도해 주세요.',
+          error instanceof Error ? error.message : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)

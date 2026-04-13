@@ -645,7 +645,7 @@ export function TeacherAssignmentsManagerPage() {
           <div className="flex items-start gap-3 text-rose-700">
             <AlertCircle className="mt-0.5 h-5 w-5" />
             <div>
-              <p className="font-semibold">과제 데이터를 불러오지 못했습니다.</p>
+              <p className="font-semibold">준비 중입니다.</p>
               <p className="mt-1 text-sm">{assignmentsError.message}</p>
             </div>
           </div>
@@ -1141,7 +1141,7 @@ export function TeacherAssignmentDetailManagerPage({
         <div className="flex items-start gap-3 text-rose-700">
           <AlertCircle className="mt-0.5 h-5 w-5" />
           <div>
-            <p className="font-semibold">과제 상세를 불러오지 못했습니다.</p>
+            <p className="font-semibold">준비 중입니다.</p>
             <p className="mt-1 text-sm">
               {assignmentError?.message ?? '과제 정보를 다시 확인해 주세요.'}
             </p>
@@ -1255,7 +1255,7 @@ export function TeacherAssignmentDetailManagerPage({
         />
         {submissionsError ? (
           <div className="mt-5 rounded-2xl bg-rose-50 px-4 py-4 text-sm text-rose-700">
-            제출물 목록을 불러오지 못했습니다: {submissionsError.message}
+            준비 중입니다.
           </div>
         ) : null}
         <div className="mt-6 overflow-x-auto">

@@ -327,7 +327,7 @@ export function AdminComplaintsManagerPage() {
         tone: 'rose',
         title: '민원 응답 저장에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsSaving(false)
@@ -369,7 +369,7 @@ export function AdminComplaintsManagerPage() {
         tone: 'rose',
         title: 'AI 초안 생성에 실패했습니다.',
         description:
-          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+          caught instanceof Error ? caught.message : '준비 중입니다.',
       })
     } finally {
       setIsDraftGenerating(false)
@@ -518,7 +518,7 @@ export function AdminComplaintsManagerPage() {
 
             {!complaintsLoading && complaintsError ? (
               <div className="rounded-[28px] border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">
-                민원 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.
+                민원 준비 중입니다.
               </div>
             ) : null}
 

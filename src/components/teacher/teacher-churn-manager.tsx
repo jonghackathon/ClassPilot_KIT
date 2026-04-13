@@ -349,7 +349,7 @@ export function TeacherChurnManager() {
 
       {!isLoading && isError ? (
         <div className="rounded-[32px] border border-rose-100 bg-rose-50 px-5 py-6 text-sm text-rose-700">
-          이탈 현황을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+          이탈 준비 중입니다.
         </div>
       ) : null}
 
