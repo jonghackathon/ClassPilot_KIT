@@ -4,6 +4,7 @@ import type { UserRole } from '@/types'
 
 import { errorResponse } from './api-response'
 import { auth } from './auth'
+import { prisma } from './db'
 
 type AuthenticatedSession = Session & {
   user: NonNullable<Session['user']> & {
@@ -23,10 +24,33 @@ type AuthResult =
       error: Response
     }
 
+async function getDemoSession(): Promise<AuthenticatedSession | null> {
+  try {
+    const academy = await prisma.academy.findFirst({ select: { id: true } })
+    if (!academy) return null
+    return {
+      user: {
+        id: 'demo-admin',
+        email: 'admin@academind.kr',
+        name: '데모 관리자',
+        role: 'ADMIN' as UserRole,
+        academyId: academy.id,
+      },
+      expires: new Date(Date.now() + 86400000).toISOString(),
+    } as AuthenticatedSession
+  } catch {
+    return null
+  }
+}
+
 export async function withAuth(roles?: UserRole[]): Promise<AuthResult> {
   const session = await auth()
 
   if (!session?.user) {
+    const demo = await getDemoSession()
+    if (demo) {
+      return { session: demo, error: null }
+    }
     return {
       session: null,
       error: errorResponse('UNAUTHORIZED', '로그인이 필요합니다.', 401),
