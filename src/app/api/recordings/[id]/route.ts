@@ -7,7 +7,15 @@ import { getRouteId, parseRequestBody } from '@/lib/route-helpers'
 import { withAuth } from '@/lib/with-auth'
 
 const recordingUpdateSchema = z.object({
-  audioUrl: z.string().trim().url().optional().nullable(),
+  audioUrl: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value.startsWith('/') || z.string().url().safeParse(value).success,
+      '녹음 파일 경로는 URL 또는 /uploads 경로여야 합니다.',
+    )
+    .optional()
+    .nullable(),
   transcript: z.string().trim().optional().nullable(),
   summary: z.string().trim().optional().nullable(),
   questions: z.string().trim().optional().nullable(),

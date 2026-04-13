@@ -1,16 +1,32 @@
+import { randomUUID } from 'node:crypto'
+import { mkdir, writeFile } from 'node:fs/promises'
+import path from 'node:path'
+
+import { toFile } from 'openai'
 import { z } from 'zod'
 
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
+import { getOpenAIClient, getWhisperModel } from '@/lib/ai/openai'
 import { getTeacherClassIds, teacherHasClassAccess } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
 import { parseRequestBody } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
+export const runtime = 'nodejs'
+
 const recordingStatuses = new Set(['PROCESSING', 'COMPLETED', 'FAILED'] as const)
+const publicRecordingDir = path.join(process.cwd(), 'public', 'uploads', 'recordings')
+const audioUrlSchema = z
+  .string()
+  .trim()
+  .refine(
+    (value) => value.startsWith('/') || z.string().url().safeParse(value).success,
+    '녹음 파일 경로는 URL 또는 /uploads 경로여야 합니다.',
+  )
 
 const recordingCreateSchema = z.object({
   lessonId: z.string().cuid(),
-  audioUrl: z.string().trim().url().optional().nullable(),
+  audioUrl: audioUrlSchema.optional().nullable(),
   transcript: z.string().trim().optional().nullable(),
 })
 
@@ -30,6 +46,48 @@ function summarizeTranscript(transcript: string) {
       ? `${keywords[0]} 복습 질문과 다음 수업 연결 포인트를 먼저 확인합니다.`
       : '다음 수업 연결 포인트를 정리합니다.',
   }
+}
+
+function buildStoredFileName(originalName: string, mimeType: string) {
+  const extension = path.extname(originalName).trim() || mimeType.split('/')[1]?.trim() || 'webm'
+  const sanitizedBase = path
+    .basename(originalName, path.extname(originalName))
+    .trim()
+    .replace(/[^a-zA-Z0-9-_]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return `${Date.now()}-${randomUUID()}-${sanitizedBase || 'recording'}.${extension.replace(/^\./, '')}`
+}
+
+async function storeRecordingFile(file: File) {
+  const fileBuffer = Buffer.from(await file.arrayBuffer())
+  const storedName = buildStoredFileName(file.name || 'recording', file.type || 'audio/webm')
+  const absolutePath = path.join(publicRecordingDir, storedName)
+  await mkdir(publicRecordingDir, { recursive: true })
+  await writeFile(absolutePath, fileBuffer)
+
+  return {
+    fileBuffer,
+    audioUrl: `/uploads/recordings/${storedName}`,
+    storedName,
+  }
+}
+
+async function transcribeRecording(params: {
+  fileBuffer: Buffer
+  fileName: string
+  mimeType: string
+}) {
+  const client = getOpenAIClient()
+  const transcription = await client.audio.transcriptions.create({
+    model: getWhisperModel(),
+    file: await toFile(params.fileBuffer, params.fileName, {
+      type: params.mimeType || 'audio/webm',
+    }),
+  })
+
+  return transcription.text?.trim() || ''
 }
 
 export async function GET(request: Request) {
@@ -108,16 +166,28 @@ export async function POST(request: Request) {
           transcript?: string | null
         }
       | null = null
+    let uploadedFile: File | null = null
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
       const file = formData.get('file')
+      uploadedFile = file instanceof File ? file : null
+
+      if (!uploadedFile || uploadedFile.size === 0) {
+        return errorResponse('VALIDATION', '녹음 파일을 선택해 주세요.', 400)
+      }
+
+      if (
+        uploadedFile.type &&
+        !uploadedFile.type.startsWith('audio/') &&
+        uploadedFile.type !== 'video/webm'
+      ) {
+        return errorResponse('VALIDATION', '오디오 파일만 업로드할 수 있습니다.', 400)
+      }
+
       const parsed = recordingCreateSchema.safeParse({
         lessonId: formData.get('lessonId'),
-        audioUrl:
-          file instanceof File && file.name
-            ? `upload://${file.name}`
-            : formData.get('audioUrl'),
+        audioUrl: null,
         transcript: formData.get('transcript'),
       })
 
@@ -163,19 +233,46 @@ export async function POST(request: Request) {
       return errorResponse('FORBIDDEN', '담당 반 수업 녹음만 등록할 수 있습니다.', 403)
     }
 
-    const normalizedTranscript = data.transcript?.trim() || null
+    let audioUrl = data.audioUrl?.trim() || null
+    let normalizedTranscript = data.transcript?.trim() || null
+    let status: 'PROCESSING' | 'COMPLETED' | 'FAILED' = normalizedTranscript
+      ? 'COMPLETED'
+      : 'PROCESSING'
+    let progress = normalizedTranscript ? 100 : uploadedFile ? 25 : 15
+
+    if (uploadedFile) {
+      const stored = await storeRecordingFile(uploadedFile)
+      audioUrl = stored.audioUrl
+
+      try {
+        normalizedTranscript =
+          normalizedTranscript ||
+          (await transcribeRecording({
+            fileBuffer: stored.fileBuffer,
+            fileName: stored.storedName,
+            mimeType: uploadedFile.type,
+          }))
+
+        status = normalizedTranscript ? 'COMPLETED' : 'FAILED'
+        progress = normalizedTranscript ? 100 : 0
+      } catch {
+        status = 'FAILED'
+        progress = 0
+      }
+    }
+
     const generated = normalizedTranscript ? summarizeTranscript(normalizedTranscript) : null
 
     const created = await prisma.recordingSummary.create({
       data: {
         lessonId: data.lessonId,
-        audioUrl: data.audioUrl?.trim() || null,
+        audioUrl,
         transcript: normalizedTranscript,
         summary: generated?.summary ?? null,
         questions: generated?.questions ?? null,
         nextPoints: generated?.nextPoints ?? null,
-        status: generated ? 'COMPLETED' : 'PROCESSING',
-        progress: generated ? 100 : 15,
+        status,
+        progress,
       },
       include: {
         lesson: {

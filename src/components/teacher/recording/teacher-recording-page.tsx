@@ -38,6 +38,7 @@ type RecordingItem = {
   status: 'PROCESSING' | 'COMPLETED' | 'FAILED'
   progress: number
   createdAt: string
+  audioUrl: string | null
   lesson: {
     id: string
     date: string
@@ -75,6 +76,7 @@ export function TeacherRecordingPage() {
   const [selectedFileName, setSelectedFileName] = useState('선택된 파일 없음')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null)
 
   const lessons = lessonsResponse?.data.items ?? []
   const recordings = recordingsResponse?.data.items ?? []
@@ -87,6 +89,7 @@ export function TeacherRecordingPage() {
 
     setIsUploading(true)
     setUploadProgress(25)
+    setUploadMessage(null)
     try {
       const formData = new FormData()
       formData.set('lessonId', effectiveLessonId)
@@ -102,8 +105,20 @@ export function TeacherRecordingPage() {
         throw new Error(body?.error?.message ?? '녹음 정리를 생성하지 못했습니다.')
       }
 
+      const payload = (await response.json().catch(() => null)) as ApiEnvelope<RecordingItem> | null
       setUploadProgress(100)
+      setUploadMessage(
+        payload?.data.status === 'COMPLETED'
+          ? '파일 업로드와 Whisper 전사가 완료되었습니다.'
+          : '파일은 저장되었지만 전사 생성이 실패했습니다. 상세 화면에서 상태를 확인해 주세요.',
+      )
+      setSelectedFile(null)
+      setSelectedFileName('선택된 파일 없음')
       await mutate(recordingsKey)
+    } catch (error) {
+      setUploadMessage(
+        error instanceof Error ? error.message : '녹음 정리 생성 중 오류가 발생했습니다.',
+      )
     } finally {
       setIsUploading(false)
     }
@@ -160,7 +175,7 @@ export function TeacherRecordingPage() {
             <p className="mt-3 text-sm text-slate-300">{effectiveLesson?.topic ?? '수업을 먼저 선택해 주세요.'}</p>
             <p className="mt-2 text-sm text-slate-300">파일: {selectedFileName}</p>
             <p className="mt-2 text-sm text-slate-300">
-              현재 단계에서는 업로드한 파일명을 기록하고, 요약 작업을 생성합니다.
+              업로드한 오디오를 저장하고 Whisper 전사 후 요약 카드까지 바로 생성합니다.
             </p>
           </div>
 
@@ -191,6 +206,7 @@ export function TeacherRecordingPage() {
                 <FileAudio2 className="h-4 w-4" />
                 파일 선택
                 <input
+                  accept="audio/*"
                   className="hidden"
                   onChange={(event) => {
                     const nextFile = event.target.files?.[0]
@@ -212,9 +228,15 @@ export function TeacherRecordingPage() {
                 type="button"
               >
                 {isUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                요약 작업 생성
+                업로드 및 전사
               </button>
             </div>
+
+            {uploadMessage ? (
+              <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                {uploadMessage}
+              </p>
+            ) : null}
           </div>
         </SurfaceCard>
       </div>

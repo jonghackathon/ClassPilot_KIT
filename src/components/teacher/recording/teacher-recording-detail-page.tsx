@@ -16,6 +16,7 @@ type ApiEnvelope<T> = {
 
 type RecordingDetail = {
   id: string
+  audioUrl: string | null
   transcript: string | null
   summary: string | null
   questions: string | null
@@ -104,6 +105,14 @@ export function TeacherRecordingDetailPage({ id }: { id: string }) {
       </div>
 
       <SurfaceCard>
+        {item.audioUrl ? (
+          <div className="mb-5 rounded-[28px] bg-slate-50 px-5 py-5">
+            <p className="text-sm font-medium text-slate-600">원본 오디오</p>
+            <audio className="mt-3 w-full" controls src={item.audioUrl}>
+              브라우저가 오디오 재생을 지원하지 않습니다.
+            </audio>
+          </div>
+        ) : null}
         <p className="text-sm font-medium text-slate-600">전사본</p>
         <div className="mt-4 rounded-[28px] bg-slate-50 px-5 py-5 text-sm leading-7 text-slate-700">
           {item.transcript ?? '전사본이 아직 없습니다.'}
