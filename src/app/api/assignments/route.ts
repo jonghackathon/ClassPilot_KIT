@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       where: { studentId: session.user.id, active: true },
       select: { classId: true },
     })
-    classIds = enrollments.map((item) => item.classId)
+    classIds = enrollments.map((item: { classId: string }) => item.classId)
   }
   if (session.user.role === 'TEACHER' && !classId) {
     classIds = await getTeacherClassIds(session.user.id)
