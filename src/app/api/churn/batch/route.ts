@@ -145,8 +145,9 @@ export async function POST(request: NextRequest) {
   ])
 
   type AttendanceRow = (typeof attendanceRows)[number]
+  type SubmissionRow = (typeof submissionRows)[number]
   const attendanceByStudent = new Map<string, AttendanceRow[]>()
-  const submissionsByStudent = new Map<string, typeof submissionRows>()
+  const submissionsByStudent = new Map<string, SubmissionRow[]>()
   const questionsByStudent = new Map<string, number>()
   const assignmentsByClass = new Map<string, string[]>()
 

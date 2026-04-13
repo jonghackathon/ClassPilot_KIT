@@ -36,5 +36,5 @@ export async function getTeacherStudentIds(teacherId: string) {
     select: { studentId: true },
   })
 
-  return [...new Set(enrollments.map((item) => item.studentId))]
+  return Array.from(new Set(enrollments.map((item) => item.studentId)))
 }
