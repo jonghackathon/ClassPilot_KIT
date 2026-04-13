@@ -48,7 +48,7 @@ export default function StudentLayout({
 
   return (
     <div
-      className="min-h-screen bg-transparent"
+      className="min-h-dvh bg-transparent"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
     >
       <div className="mx-auto max-w-[680px] px-4 pt-4">
