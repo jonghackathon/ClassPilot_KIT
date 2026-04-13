@@ -16,10 +16,10 @@
 
 | # | 항목 | 파일 | 설명 |
 |---|------|------|------|
-| 1 | 모바일 admin 햄버거 메뉴 | `src/components/layout/AdminMobileNav.tsx` | Sheet 컴포넌트로 오버레이 사이드바 |
-| 2 | 모바일 teacher 하단 탭 | `src/components/layout/TeacherBottomNav.tsx` | 768px 이하 바텀 탭 전환 |
-| 3 | safe-area-inset 대응 | `src/app/student/layout.tsx` | `env(safe-area-inset-bottom)` — iPhone 노치 |
-| 4 | 알림 벨 드롭다운 | `src/app/api/notifications/route.ts` + `src/hooks/useNotifications.ts` | 최근 알림 5개 + 전체보기 |
+| 1 | 모바일 admin 햄버거 메뉴 정리 | `src/app/admin/layout.tsx` | 현재 inline 모바일 오버레이를 컴포넌트화하거나 동작 점검 |
+| 2 | 모바일 teacher 하단 탭 점검 | `src/app/teacher/layout.tsx` | 이미 있는 768px 이하 바텀 탭의 메뉴/활성 상태 최종 점검 |
+| 3 | safe-area-inset 최종 점검 | `src/app/student/layout.tsx` | 이미 적용된 `env(safe-area-inset-bottom)` 동작 검증 |
+| 4 | 알림 벨 드롭다운 API 전환 | `src/app/api/notifications/route.ts` + `src/hooks/useNotifications.ts` + 각 layout | 현재 하드코딩 알림을 최근 알림 5개 + 전체보기 흐름으로 전환 |
 | 5 | Skeleton 활용 점검 | `src/components/ui/skeleton.tsx` (**이미 존재**) | 각 데이터 로딩 구간에 실제 적용 여부 점검 |
 | 6 | 빈 상태 (EmptyState) | `src/components/ui/EmptyState.tsx` | 데이터 0건일 때 안내 |
 | 7 | 에러 처리 | `src/components/error/ErrorBoundary.tsx` + `src/app/error.tsx` | 401/403/404/500/네트워크 에러별 UI |
@@ -27,8 +27,8 @@
 | 9 | SEO 메타데이터 | 각 `page.tsx` | 페이지별 title, description |
 | 10 | Vercel 배포 | `vercel.json` + `next.config.ts` + 환경변수 | 도메인 연결 + 프로덕션 최적화 |
 | **11** | **🔴 녹음 파일 스토리지 전환** | `src/app/api/recordings/route.ts` | 로컬 `public/uploads` → Supabase Storage |
-| **12** | **🟠 TypeScript 빌드 오류 수정** | 15개 파일 (`extractText`, `slug` 등) | `tsc --noEmit` 통과시켜야 Vercel 빌드 성공 |
-| **13** | **🟡 중복 파일 정리** | `route 2.ts` 형태 파일 6개 | 공백 파일명 제거 |
+| **12** | **🟠 TypeScript 빌드 오류 수정** | 잔여 오류 파일 전체 | `tsc --noEmit` 통과시켜야 Vercel 빌드 성공 |
+| **13** | **🟡 중복 파일 재확인** | `route 2.ts` 형태 파일 | 현재 미발견이지만 빌드 전 마지막 점검 |
 | **14** | **🟡 환경변수 `.env.example` 보완** | `.env.example` | `CRON_SECRET` 누락 |
 | **15** | **🟡 rate limiter 주의사항 문서화** | `src/lib/rate-limit.ts` | 멀티 인스턴스 시 Redis 전환 안내 |
 
@@ -90,7 +90,7 @@ export async function downloadRecording(fileName: string) {
 
 ### 12. TypeScript 빌드 오류 수정 🟠
 
-`npx tsc --noEmit`에서 **15개 파일** 오류 발생. Vercel은 빌드 시 타입 체크를 실행하므로 전부 통과해야 한다.
+`npx tsc --noEmit` 기준 잔여 오류를 모두 정리해야 한다. Vercel은 빌드 시 타입 체크를 실행하므로 전부 통과해야 한다.
 
 #### 패턴 A — `extractText()` 타입 오류 (4개 파일 동일)
 
@@ -139,16 +139,11 @@ function extractText(response: Message): string {
 
 ### 13. 중복 파일 정리 🟡
 
-아래 파일들이 이름에 공백이 포함된 복사본(`route 2.ts`)으로 존재하며 타입 오류를 2배로 발생시킨다.
+이전 작업에서 이름에 공백이 포함된 복사본(`route 2.ts`)이 있었기 때문에 배포 전 마지막으로 재확인한다.
 
 ```bash
-# 삭제 대상
-src/app/api/auth/register/route 2.ts
-src/app/api/bot-faq/route 2.ts
-src/app/api/churn/route 2.ts
-src/app/api/consultations/route 2.ts
-src/app/api/reports/route 2.ts
-# (발견 시 추가)
+# 현재는 미발견
+# 다시 생긴 경우만 삭제
 ```
 
 ```bash
@@ -191,15 +186,15 @@ if (count === 1) await kv.expire(key, Math.ceil(options.windowMs / 1000))
 ## 모바일 대응 체크리스트
 
 ### Admin (운영자)
-- [ ] 햄버거 버튼 클릭 → Sheet 사이드바 열기
-- [ ] 메뉴 항목 클릭 → Sheet 닫기 + 페이지 이동
+- [ ] 햄버거 버튼 클릭 → 모바일 오버레이 열기
+- [ ] 메뉴 항목 클릭 → 오버레이 닫기 + 페이지 이동
 
 ### Teacher (강사)
-- [ ] 768px 이하 하단 탭은 존재하므로, 전체 메뉴 전략과 활성 상태를 최종 점검
+- [ ] 768px 이하 하단 탭은 이미 존재하므로, 전체 메뉴 전략과 활성 상태를 최종 점검
 - [ ] 현재 활성 탭 하이라이트
 
 ### Student (수강생)
-- [ ] 바텀 탭 4개 (홈/과제/출석/질문)
+- [ ] 바텀 탭 4개 (홈/출결/과제/복습) 최종 점검
 - [ ] iPhone safe area inset 최종 점검
 
 ---
