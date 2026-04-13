@@ -1,5 +1,13 @@
 # CLAUDE.md 작성법 가이드
 
+## ClassPilot 적용 사례
+
+- `CLAUDE.md` + `AGENTS.md` 두 파일로 프로젝트 인스트럭션 구성
+- `AGENTS.md`에 Next.js 버전 주의사항 기재 — Codex 에이전트가 올바른 API 사용하도록 유도
+- `@AGENTS.md` 참조 문법으로 CLAUDE.md에서 불러오는 구조 사용
+
+---
+
 ## 1. CLAUDE.md란?
 
 `CLAUDE.md`는 Claude Code가 프로젝트에서 작업할 때 **자동으로 읽는 인스트럭션 파일**입니다.

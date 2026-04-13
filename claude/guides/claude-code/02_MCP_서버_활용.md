@@ -1,5 +1,12 @@
 # MCP 서버 활용 가이드
 
+## ClassPilot 적용 사례
+
+- **Figma MCP** — 화면 설계서 기반으로 Figma 디자인을 Claude에 연결, 디자인 컨텍스트를 직접 읽어 Next.js 코드로 변환 (→ `design-workflow/` 가이드 참고)
+- `get_design_context` 호출로 색상·간격·컴포넌트 구조 추출 후 Tailwind 클래스로 매핑
+
+---
+
 ## 1. MCP란?
 
 **Model Context Protocol (MCP)** 는 AI 모델이 외부 도구 및 데이터 소스에 접근할 수 있게 하는 개방형 프로토콜입니다.

@@ -1,5 +1,12 @@
 # Hooks 설정 가이드
 
+## ClassPilot 적용 사례
+
+- `PostToolUse` 훅으로 파일 저장 후 `npx tsc --noEmit` 자동 실행 — 타입 오류 즉시 감지
+- Codex 에이전트가 파일을 수정할 때마다 린트 결과를 피드백으로 제공
+
+---
+
 ## 1. Hooks란?
 
 Hooks는 Claude Code의 특정 이벤트에 반응하여 **자동으로 셸 명령어를 실행**하는 시스템입니다.
