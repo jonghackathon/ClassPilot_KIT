@@ -1,17 +1,34 @@
-import { prisma } from '@/lib/db'
+import { z } from 'zod'
+
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
+import { getTeacherClassIds, teacherHasClassAccess } from '@/lib/access-scope'
+import { prisma } from '@/lib/db'
+import { parseRequestBody } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
+
+const recordingStatuses = new Set(['PROCESSING', 'COMPLETED', 'FAILED'] as const)
+
+const recordingCreateSchema = z.object({
+  lessonId: z.string().cuid(),
+  audioUrl: z.string().trim().url().optional().nullable(),
+  transcript: z.string().trim().optional().nullable(),
+})
 
 function summarizeTranscript(transcript: string) {
   const snippet = transcript.trim().slice(0, 180)
+  const keywords = transcript
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 5)
 
   return {
     summary: snippet ? `${snippet}${transcript.length > 180 ? '...' : ''}` : '요약 준비 중',
-    keyPhrases: transcript
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 5),
-    actionItems: ['다음 수업 목표를 정리합니다.', '복습 과제를 연결합니다.'],
+    questions: keywords.length
+      ? keywords.map((item, index) => `${index + 1}. ${item}와 관련된 학생 질문을 다시 확인해 보세요.`).join('\n')
+      : null,
+    nextPoints: keywords.length
+      ? `${keywords[0]} 복습 질문과 다음 수업 연결 포인트를 먼저 확인합니다.`
+      : '다음 수업 연결 포인트를 정리합니다.',
   }
 }
 
@@ -25,16 +42,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams, page, limit, skip } = getPageParams(request)
     const classId = searchParams.get('classId')
+    const lessonId = searchParams.get('lessonId')
     const status = searchParams.get('status')
 
+    if (status && !recordingStatuses.has(status as 'PROCESSING' | 'COMPLETED' | 'FAILED')) {
+      return errorResponse('VALIDATION', '녹음 상태 필터가 올바르지 않습니다.', 400)
+    }
+
+    const teacherClassIds =
+      session.user.role === 'TEACHER' ? await getTeacherClassIds(session.user.id) : []
+
     const where = {
-      ...(session.user.role === 'ADMIN' ? {} : { teacherId: session.user.id }),
-      ...(classId ? { classId } : {}),
-      ...(status
-        ? {
-            status: status as 'UPLOADED' | 'PROCESSING' | 'COMPLETED' | 'FAILED',
-          }
-        : {}),
+      lesson: {
+        class: {
+          academyId: session.user.academyId,
+          ...(session.user.role === 'TEACHER' ? { id: { in: teacherClassIds } } : {}),
+          ...(classId ? { id: classId } : {}),
+        },
+      },
+      ...(lessonId ? { lessonId } : {}),
+      ...(status ? { status: status as 'PROCESSING' | 'COMPLETED' | 'FAILED' } : {}),
     }
 
     const [items, total] = await Promise.all([
@@ -43,6 +70,16 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        include: {
+          lesson: {
+            select: {
+              id: true,
+              date: true,
+              topic: true,
+              class: { select: { id: true, name: true } },
+            },
+          },
+        },
       }),
       prisma.recordingSummary.count({ where }),
     ])
@@ -63,28 +100,58 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = (await request.json()) as {
-      classId?: string | null
-      title?: string | null
-      originalFileName?: string | null
-      transcript?: string | null
-      audioUrl?: string | null
+    const { data, error: validationError } = await parseRequestBody(request, recordingCreateSchema)
+    if (validationError || !data) {
+      return validationError
     }
 
-    const generated = summarizeTranscript(body.transcript ?? '')
+    const lesson = await prisma.lesson.findUnique({
+      where: { id: data.lessonId },
+      include: {
+        class: {
+          select: {
+            id: true,
+            academyId: true,
+            name: true,
+          },
+        },
+      },
+    })
+
+    if (!lesson || lesson.class.academyId !== session.user.academyId) {
+      return errorResponse('NOT_FOUND', '수업을 찾을 수 없습니다.', 404)
+    }
+
+    if (
+      session.user.role === 'TEACHER' &&
+      !(await teacherHasClassAccess(session.user.id, lesson.classId))
+    ) {
+      return errorResponse('FORBIDDEN', '담당 반 수업 녹음만 등록할 수 있습니다.', 403)
+    }
+
+    const normalizedTranscript = data.transcript?.trim() || null
+    const generated = normalizedTranscript ? summarizeTranscript(normalizedTranscript) : null
 
     const created = await prisma.recordingSummary.create({
       data: {
-        classId: body.classId ?? null,
-        teacherId: session.user.id,
-        title: body.title ?? '새 녹음 정리',
-        originalFileName: body.originalFileName ?? 'recording.m4a',
-        transcript: body.transcript ?? '',
-        audioUrl: body.audioUrl ?? null,
-        status: 'COMPLETED',
-        summary: generated.summary,
-        keyPhrases: generated.keyPhrases,
-        actionItems: generated.actionItems,
+        lessonId: data.lessonId,
+        audioUrl: data.audioUrl?.trim() || null,
+        transcript: normalizedTranscript,
+        summary: generated?.summary ?? null,
+        questions: generated?.questions ?? null,
+        nextPoints: generated?.nextPoints ?? null,
+        status: generated ? 'COMPLETED' : 'PROCESSING',
+        progress: generated ? 100 : 15,
+      },
+      include: {
+        lesson: {
+          select: {
+            id: true,
+            date: true,
+            topic: true,
+            class: { select: { id: true, name: true } },
+          },
+        },
       },
     })
 
