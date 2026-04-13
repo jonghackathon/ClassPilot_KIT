@@ -26,6 +26,7 @@ export function EssayFeedback({
   extractedText,
   open,
   onClose,
+  onApplyTeacherComment,
 }: {
   assignmentId: string
   assignmentTitle: string
@@ -33,6 +34,7 @@ export function EssayFeedback({
   extractedText: string
   open: boolean
   onClose: () => void
+  onApplyTeacherComment?: (teacherComment: string) => void
 }) {
   const [isGenerating, setIsGenerating] = useState(false)
   const [feedback, setFeedback] = useState<FeedbackResult | null>(null)
@@ -119,6 +121,18 @@ export function EssayFeedback({
         </div>
 
         <div className="flex flex-wrap justify-end gap-3 border-t border-slate-100 px-5 py-4 sm:px-6">
+          {feedback && onApplyTeacherComment ? (
+            <button
+              className={cx(
+                primaryButton,
+                'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20',
+              )}
+              onClick={() => onApplyTeacherComment(feedback.teacherComment)}
+              type="button"
+            >
+              강사 코멘트에 적용
+            </button>
+          ) : null}
           <button className={secondaryButton} onClick={onClose} type="button">닫기</button>
         </div>
       </div>
