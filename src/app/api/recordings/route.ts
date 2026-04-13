@@ -100,9 +100,43 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { data, error: validationError } = await parseRequestBody(request, recordingCreateSchema)
-    if (validationError || !data) {
-      return validationError
+    const contentType = request.headers.get('content-type') ?? ''
+    let data:
+      | {
+          lessonId: string
+          audioUrl?: string | null
+          transcript?: string | null
+        }
+      | null = null
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      const file = formData.get('file')
+      const parsed = recordingCreateSchema.safeParse({
+        lessonId: formData.get('lessonId'),
+        audioUrl:
+          file instanceof File && file.name
+            ? `upload://${file.name}`
+            : formData.get('audioUrl'),
+        transcript: formData.get('transcript'),
+      })
+
+      if (!parsed.success) {
+        return errorResponse(
+          'VALIDATION',
+          '녹음 업로드 요청이 올바르지 않습니다.',
+          400,
+          parsed.error.flatten(),
+        )
+      }
+
+      data = parsed.data
+    } else {
+      const parsedBody = await parseRequestBody(request, recordingCreateSchema)
+      if (parsedBody.error || !parsedBody.data) {
+        return parsedBody.error
+      }
+      data = parsedBody.data
     }
 
     const lesson = await prisma.lesson.findUnique({

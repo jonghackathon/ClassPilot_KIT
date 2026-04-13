@@ -56,6 +56,7 @@ export async function POST(request: NextRequest) {
   const since30Days = daysAgo(30)
   const since14Days = daysAgo(14)
   const since7Days = daysAgo(7)
+  const now = new Date()
 
   const students = await prisma.user.findMany({
     where: {
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     prisma.assignment.findMany({
       where: {
         classId: { in: classIds.length ? classIds : ['__none__'] },
-        dueDate: { gte: since30Days },
+        dueDate: { gte: since30Days, lte: now },
       },
       select: {
         id: true,
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       where: {
         studentId: { in: studentIds },
         assignment: {
-          dueDate: { gte: since30Days },
+          dueDate: { gte: since30Days, lte: now },
         },
       },
       select: {
