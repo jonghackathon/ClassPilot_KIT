@@ -31,7 +31,7 @@ enum HomeworkStatus {
 }
 
 enum AssignmentType {
-  CODING
+  WORKBOOK
   ESSAY
   IMAGE
 }

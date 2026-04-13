@@ -40,45 +40,45 @@ type CurriculumCourse = {
 
 const courses: CurriculumCourse[] = [
   {
-    id: 'python-middle',
-    title: 'Python 중급 코스',
+    id: 'korean-middle',
+    title: '국어 논술 중급 코스',
     level: '중등 심화',
     teacher: '박강사',
     stages: [
       {
         id: 'stage-1',
-        title: '1단계 · 반복문 기초',
-        objective: 'for와 while의 차이를 이해하고 기본 문법을 익힙니다.',
+        title: '1단계 · 비문학 독해 기초',
+        objective: '지문의 구조를 파악하고 핵심 논지를 정리합니다.',
         lessons: [
-          { id: 'lesson-1', title: '1-1 반복문 도입', summary: '반복이 필요한 상황을 예제로 이해합니다.' },
-          { id: 'lesson-2', title: '1-2 for문 연습', summary: 'range와 리스트 순회를 중심으로 연습합니다.' },
+          { id: 'lesson-1', title: '1-1 지문 구조 파악', summary: '문단별 핵심 문장을 찾는 연습을 합니다.' },
+          { id: 'lesson-2', title: '1-2 논지 정리', summary: '주장과 근거를 구분하는 방법을 익힙니다.' },
         ],
       },
       {
         id: 'stage-2',
-        title: '2단계 · 반복문 응용',
-        objective: '반복문 안 조건 분기와 누적 패턴을 적용합니다.',
+        title: '2단계 · 서술형 답안 작성',
+        objective: '논리적인 글쓰기 구조를 이해하고 답안을 작성합니다.',
         lessons: [
-          { id: 'lesson-3', title: '2-1 조건과 반복', summary: 'if와 함께 쓰는 반복문 흐름을 익힙니다.' },
-          { id: 'lesson-4', title: '2-2 누적 계산', summary: '합계, 평균, 카운팅 패턴을 다룹니다.' },
-          { id: 'lesson-5', title: '2-3 리스트 컴프리헨션', summary: '축약 표현과 가독성 기준을 정리합니다.' },
+          { id: 'lesson-3', title: '2-1 개요 작성법', summary: '서론-본론-결론 구조를 세웁니다.' },
+          { id: 'lesson-4', title: '2-2 근거 제시', summary: '사례와 인용을 활용하는 방법을 다룹니다.' },
+          { id: 'lesson-5', title: '2-3 첨삭과 퇴고', summary: '문장 다듬기와 논리 점검을 연습합니다.' },
         ],
       },
     ],
   },
   {
-    id: 'web-basic',
-    title: '웹 기초 코스',
+    id: 'math-basic',
+    title: '수학 내신 기초 코스',
     level: '초등 고학년',
     teacher: '김강사',
     stages: [
       {
         id: 'stage-3',
-        title: '1단계 · HTML 구조',
-        objective: '문서 구조와 시맨틱 태그를 익힙니다.',
+        title: '1단계 · 함수 기초',
+        objective: '일차함수와 이차함수의 기본 개념을 익힙니다.',
         lessons: [
-          { id: 'lesson-6', title: '1-1 제목과 문단', summary: '콘텐츠를 읽기 좋게 배치합니다.' },
-          { id: 'lesson-7', title: '1-2 카드 레이아웃', summary: '정보 카드를 HTML로 구성합니다.' },
+          { id: 'lesson-6', title: '1-1 일차함수 개념', summary: '그래프와 기울기의 관계를 이해합니다.' },
+          { id: 'lesson-7', title: '1-2 이차함수 도입', summary: '꼭짓점과 축의 개념을 정리합니다.' },
         ],
       },
     ],
@@ -295,7 +295,7 @@ export function CurriculumPage() {
 
       <CurriculumDialog
         fields={[
-          { label: '코스 이름', defaultValue: '새 Python 코스' },
+          { label: '코스 이름', defaultValue: '새 코스' },
           { label: '레벨', defaultValue: '중등 심화' },
           { label: '담당 강사', defaultValue: '박강사' },
         ]}
