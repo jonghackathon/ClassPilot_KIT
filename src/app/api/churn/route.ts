@@ -39,61 +39,92 @@ export async function GET(request: Request) {
     }
   }
 
-  const where = {
-    student: {
-      academyId: session.user.academyId,
-      ...(keyword
-        ? {
-            OR: [
-              { name: searchContains(keyword) },
-              { email: searchContains(keyword) },
-            ],
-          }
-        : {}),
-    },
-    ...(accessibleStudentIds ? { studentId: { in: accessibleStudentIds } } : {}),
-    ...(level && churnLevels.has(level as 'SAFE' | 'WARNING' | 'DANGER')
-      ? { level: level as 'SAFE' | 'WARNING' | 'DANGER' }
+  const studentWhere = {
+    academyId: session.user.academyId,
+    ...(keyword
+      ? {
+          OR: [
+            { name: searchContains(keyword) },
+            { email: searchContains(keyword) },
+          ],
+        }
       : {}),
-    ...(session.user.role === 'ADMIN' && studentId ? { studentId } : {}),
+    ...(accessibleStudentIds ? { id: { in: accessibleStudentIds } } : {}),
+    ...(session.user.role === 'ADMIN' && studentId ? { id: studentId } : {}),
   }
 
-  const [items, total] = await prisma.$transaction([
-    prisma.churnPrediction.findMany({
-      where,
-      include: {
-        student: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            studentProfile: {
-              select: {
-                grade: true,
-              },
+  const students = await prisma.user.findMany({
+    where: studentWhere,
+    select: { id: true },
+  })
+
+  if (students.length === 0) {
+    return paginatedResponse([], 0, page, limit)
+  }
+
+  const studentIds = students.map((item) => item.id)
+
+  const predictions = await prisma.churnPrediction.findMany({
+    where: {
+      studentId: { in: studentIds },
+    },
+    include: {
+      student: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          studentProfile: {
+            select: {
+              grade: true,
             },
-            enrollments: {
-              where: {
-                active: true,
-              },
-              select: {
-                class: {
-                  select: {
-                    id: true,
-                    name: true,
-                  },
+          },
+          enrollments: {
+            where: {
+              active: true,
+            },
+            select: {
+              class: {
+                select: {
+                  id: true,
+                  name: true,
                 },
               },
             },
           },
         },
       },
-      orderBy: [{ calculatedAt: 'desc' }, { createdAt: 'desc' }],
-      skip,
-      take: limit,
-    }),
-    prisma.churnPrediction.count({ where }),
-  ])
+    },
+    orderBy: [{ calculatedAt: 'desc' }, { createdAt: 'desc' }],
+  })
+
+  const latestByStudent = new Map<string, (typeof predictions)[number]>()
+
+  for (const item of predictions) {
+    if (!latestByStudent.has(item.studentId)) {
+      latestByStudent.set(item.studentId, item)
+    }
+  }
+
+  const latestItems = [...latestByStudent.values()]
+    .filter((item) =>
+      level && churnLevels.has(level as 'SAFE' | 'WARNING' | 'DANGER')
+        ? item.level === (level as 'SAFE' | 'WARNING' | 'DANGER')
+        : true,
+    )
+    .sort((left, right) => {
+      const calculatedGap =
+        new Date(right.calculatedAt).getTime() - new Date(left.calculatedAt).getTime()
+
+      if (calculatedGap !== 0) {
+        return calculatedGap
+      }
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    })
+
+  const total = latestItems.length
+  const items = latestItems.slice(skip, skip + limit)
 
   return paginatedResponse(items, total, page, limit)
 }

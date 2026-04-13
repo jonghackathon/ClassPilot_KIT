@@ -8,7 +8,6 @@ import { mutate } from 'swr'
 import { PageHero, ProgressBar, SectionHeading, StatusBadge, SurfaceCard, cx } from '@/components/frontend/common'
 import { useCopilot } from '@/hooks/useCopilot'
 import { useRecordings } from '@/hooks/useRecordings'
-import { apiRequest } from '@/lib/fetcher'
 
 const filledButton =
   'inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:translate-y-[-1px]'
@@ -51,7 +50,9 @@ type RecordingItem = {
 }
 
 function getDateKey() {
-  return new Date().toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+  }).format(new Date())
 }
 
 function formatDate(value: string) {
@@ -70,6 +71,7 @@ export function TeacherRecordingPage() {
   const { data: lessonsResponse } = useCopilot<ApiEnvelope<PaginatedData<LessonItem>>>(lessonsKey)
   const { data: recordingsResponse } = useRecordings<ApiEnvelope<PaginatedData<RecordingItem>>>(recordingsKey)
   const [selectedLessonId, setSelectedLessonId] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedFileName, setSelectedFileName] = useState('선택된 파일 없음')
   const [uploadProgress, setUploadProgress] = useState(0)
   const [isUploading, setIsUploading] = useState(false)
@@ -81,17 +83,25 @@ export function TeacherRecordingPage() {
     lessons.find((lesson) => lesson.id === effectiveLessonId) ?? lessons[0] ?? null
 
   async function handleUpload() {
-    if (!effectiveLessonId) return
+    if (!effectiveLessonId || !selectedFile) return
 
     setIsUploading(true)
     setUploadProgress(25)
     try {
-      await apiRequest('/api/recordings', {
+      const formData = new FormData()
+      formData.set('lessonId', effectiveLessonId)
+      formData.set('file', selectedFile)
+
+      const response = await fetch('/api/recordings', {
         method: 'POST',
-        body: JSON.stringify({
-          lessonId: effectiveLessonId,
-        }),
+        body: formData,
       })
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}))
+        throw new Error(body?.error?.message ?? '녹음 정리를 생성하지 못했습니다.')
+      }
+
       setUploadProgress(100)
       await mutate(recordingsKey)
     } finally {
@@ -149,6 +159,9 @@ export function TeacherRecordingPage() {
             <p className="mt-2 text-2xl font-semibold">{effectiveLesson?.class.name ?? '오늘 수업 없음'}</p>
             <p className="mt-3 text-sm text-slate-300">{effectiveLesson?.topic ?? '수업을 먼저 선택해 주세요.'}</p>
             <p className="mt-2 text-sm text-slate-300">파일: {selectedFileName}</p>
+            <p className="mt-2 text-sm text-slate-300">
+              현재 단계에서는 업로드한 파일명을 기록하고, 요약 작업을 생성합니다.
+            </p>
           </div>
 
           <div className="mt-5 space-y-4">
@@ -182,6 +195,7 @@ export function TeacherRecordingPage() {
                   onChange={(event) => {
                     const nextFile = event.target.files?.[0]
                     if (!nextFile) return
+                    setSelectedFile(nextFile)
                     setSelectedFileName(nextFile.name)
                     setUploadProgress(0)
                   }}
@@ -193,12 +207,12 @@ export function TeacherRecordingPage() {
                   filledButton,
                   'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20',
                 )}
-                disabled={isUploading || !effectiveLessonId}
+                disabled={isUploading || !effectiveLessonId || !selectedFile}
                 onClick={handleUpload}
                 type="button"
               >
                 {isUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                업로드 시작
+                요약 작업 생성
               </button>
             </div>
           </div>

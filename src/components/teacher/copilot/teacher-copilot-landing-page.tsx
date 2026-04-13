@@ -28,7 +28,9 @@ type LessonItem = {
 }
 
 function getDateKey() {
-  return new Date().toISOString().slice(0, 10)
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+  }).format(new Date())
 }
 
 function formatLessonTime(value: string) {
