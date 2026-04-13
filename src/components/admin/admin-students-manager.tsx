@@ -31,6 +31,7 @@ import {
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
 type RiskFilter = '전체' | '높음' | '주의' | '정상'
+type RiskLabel = Exclude<RiskFilter, '전체'>
 type AttendanceStatus = 'PRESENT' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT'
 type ChurnLevel = 'SAFE' | 'WARNING' | 'DANGER'
 type PaymentStatus = 'PAID' | 'UNPAID' | 'PARTIAL'
@@ -77,7 +78,16 @@ type EnrollmentItem = {
 }
 
 type AttendanceSummaryItem = {
+  id?: string
+  date?: string
   status: AttendanceStatus
+  absenceReason?: string | null
+  homeworkStatus?: 'COMPLETE' | 'INCOMPLETE' | null
+  class?: {
+    id: string
+    name: string
+    subject: string | null
+  }
 }
 
 type AttendanceDetailItem = {
@@ -207,6 +217,9 @@ const emptyConsultationForm: ConsultationFormState = {
   type: 'PHONE',
   content: '',
 }
+
+const emptyStudents: StudentListItem[] = []
+const emptyClasses: ClassItem[] = []
 
 function OverlayPanel({
   open,
@@ -343,7 +356,7 @@ function getAttendanceTone(rate: number | null): Tone {
   return 'rose'
 }
 
-function getRiskMeta(level?: ChurnLevel | null) {
+function getRiskMeta(level?: ChurnLevel | null): { label: RiskLabel; tone: Tone } {
   if (level === 'DANGER') {
     return { label: '높음', tone: 'rose' as Tone }
   }
@@ -607,8 +620,8 @@ export function AdminStudentsManagerPage() {
   const { data: classesResponse } =
     useClasses<ApiEnvelope<PaginatedData<ClassItem>>>('?limit=100')
 
-  const students = data?.data.items ?? []
-  const classes = classesResponse?.data.items ?? []
+  const students = data?.data.items ?? emptyStudents
+  const classes = classesResponse?.data.items ?? emptyClasses
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -624,7 +637,7 @@ export function AdminStudentsManagerPage() {
         acc[risk] += 1
         return acc
       },
-      { 높음: 0, 주의: 0, 정상: 0 },
+      { 높음: 0, 주의: 0, 정상: 0 } as Record<RiskLabel, number>,
     )
   }, [filteredStudents])
 
@@ -1342,22 +1355,24 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
                     출결 기록이 없습니다.
                   </div>
                 ) : (
-                  student.attendances.map((item) => {
-                    const meta = getAttendanceStatusMeta(item.status)
+	                  student.attendances.map((item) => {
+	                    const meta = getAttendanceStatusMeta(item.status)
+	                    const classLabel = item.class?.name ?? '반 정보 없음'
+	                    const classSubject = item.class?.subject ? ` · ${item.class.subject}` : ''
 
-                    return (
-                      <div
+	                    return (
+	                      <div
                         key={item.id}
-                        className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="font-semibold text-slate-900">{item.class.name}</p>
-                            <p className="mt-1 text-sm text-slate-500">
-                              {formatDate(item.date)}
-                              {item.class.subject ? ` · ${item.class.subject}` : ''}
-                            </p>
-                          </div>
+	                        className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
+	                      >
+	                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+	                          <div>
+	                            <p className="font-semibold text-slate-900">{classLabel}</p>
+	                            <p className="mt-1 text-sm text-slate-500">
+	                              {formatDate(item.date)}
+	                              {classSubject}
+	                            </p>
+	                          </div>
                           <div className="flex flex-wrap gap-2">
                             <StatusBadge label={meta.label} tone={meta.tone} />
                             {item.homeworkStatus ? (

@@ -16,7 +16,7 @@ type Params = Promise<{ id: string }>
 export async function GET(_request: Request, { params }: { params: Params }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -73,7 +73,7 @@ export async function GET(_request: Request, { params }: { params: Params }) {
 export async function PATCH(request: Request, { params }: { params: Params }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 

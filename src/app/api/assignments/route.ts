@@ -8,7 +8,7 @@ import { assignmentCreateSchema } from '@/lib/validations/assignments'
 
 export async function GET(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { searchParams, page, limit, skip } = getPageParams(request)
   const classId = searchParams.get('classId') ?? undefined
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const body = await request.json().catch(() => null)
   if (!body) {

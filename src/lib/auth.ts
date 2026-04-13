@@ -1,12 +1,14 @@
 import NextAuth from 'next-auth'
+import type { Adapter } from 'next-auth/adapters'
 import { PrismaAdapter } from '@auth/prisma-adapter'
 import Credentials from 'next-auth/providers/credentials'
 import bcrypt from 'bcryptjs'
 
 import { prisma } from './db'
+import type { UserRole } from '@/types'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma) as Adapter,
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/login',
@@ -54,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.role = token.role as string
+        session.user.role = token.role as UserRole
         session.user.id = token.id as string
         session.user.academyId = token.academyId as string
       }

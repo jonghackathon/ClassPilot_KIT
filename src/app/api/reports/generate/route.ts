@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
+import { extractClaudeText } from '@/lib/ai/extract-text'
 import { buildMonthlyReportPrompt } from '@/lib/ai/prompts'
 import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
@@ -20,18 +21,10 @@ function makeMonthRange(monthStr: string) {
   return { start, end }
 }
 
-function extractText(response: Awaited<ReturnType<ReturnType<typeof getClaudeClient>['messages']['create']>>) {
-  return response.content
-    .filter((block): block is Extract<(typeof response.content)[number], { type: 'text' }> => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim()
-}
-
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -122,6 +115,7 @@ export async function POST(request: NextRequest) {
       model: getClaudeModel(),
       max_tokens: 900,
       temperature: 0.35,
+      stream: false,
       system: '학부모가 읽는 월간 학습 리포트를 한국어로 간결하고 따뜻하게 작성합니다.',
       messages: [
         {
@@ -136,7 +130,7 @@ export async function POST(request: NextRequest) {
         },
       ],
     })
-    const aiText = extractText(response)
+    const aiText = extractClaudeText(response)
     if (aiText) {
       growth = aiText
       comment = `${student.name} 수강생 ${parsed.data.monthStr} AI 월간 리포트`

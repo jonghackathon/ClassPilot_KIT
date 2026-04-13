@@ -35,7 +35,6 @@ export async function POST(request: Request) {
       const academy = await prisma.academy.create({
         data: {
           name: 'AcadeMind',
-          slug: 'academind',
         },
         select: { id: true },
       })

@@ -7,7 +7,7 @@ import { getPageParams, withAuth } from '@/lib/with-auth'
 export async function GET(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'STUDENT'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -63,7 +63,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'STUDENT'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

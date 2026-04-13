@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { buildComplaintDraftPrompt } from '@/lib/ai/prompts'
 import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
+import { extractClaudeText } from '@/lib/ai/extract-text'
 import { prisma } from '@/lib/db'
 import { getRouteId, parseRequestBody } from '@/lib/route-helpers'
 import { complaintAiDraftSchema } from '@/lib/validations/complaints'
@@ -24,21 +25,13 @@ function fallbackDraft(input: {
   ].join('\n\n')
 }
 
-function extractText(response: Awaited<ReturnType<ReturnType<typeof getClaudeClient>['messages']['create']>>) {
-  return response.content
-    .filter((block): block is Extract<(typeof response.content)[number], { type: 'text' }> => block.type === 'text')
-    .map((block) => block.text)
-    .join('\n')
-    .trim()
-}
-
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   const { session, error } = await withAuth(['ADMIN'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -85,6 +78,7 @@ export async function POST(
       model: getClaudeModel(),
       max_tokens: 600,
       temperature: 0.35,
+      stream: false,
       system:
         '학원 운영팀의 민원 1차 답변 초안을 한국어로 작성합니다. 공감, 확인 중인 사실, 후속 조치 약속을 포함하고 과장하거나 단정하지 않습니다.',
       messages: [
@@ -99,7 +93,7 @@ export async function POST(
         },
       ],
     })
-    aiDraft = extractText(response) || fallback
+    aiDraft = extractClaudeText(response) || fallback
   } catch {
     // AI 호출 실패 시에도 운영자가 바로 수정 가능한 초안을 반환한다.
   }

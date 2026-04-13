@@ -12,7 +12,7 @@ type RouteContext = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id: assignmentId, submissionId } = await Promise.resolve(context.params)
   const submission = await prisma.submission.findFirst({
@@ -46,7 +46,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id: assignmentId, submissionId } = await Promise.resolve(context.params)
   const submission = await prisma.submission.findFirst({
@@ -154,12 +154,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id: assignmentId, submissionId } = await Promise.resolve(context.params)
   const submission = await prisma.submission.findFirst({
     where: { id: submissionId, assignmentId },
-    include: { assignment: { select: { class: { select: { academyId: true } } } } },
+    include: { assignment: { select: { classId: true, class: { select: { academyId: true } } } } },
   })
   if (!submission) {
     return errorResponse('NOT_FOUND', '제출물을 찾을 수 없습니다.', 404)

@@ -5,7 +5,7 @@ import { withAuth } from '@/lib/with-auth'
 export async function GET() {
   const { session, error } = await withAuth(['ADMIN'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -28,7 +28,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const { session, error } = await withAuth(['ADMIN'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -51,12 +51,14 @@ export async function PATCH(request: Request) {
             },
           },
           update: {
-            value: item.value,
+            value:
+              typeof item.value === 'string' ? item.value : JSON.stringify(item.value ?? null),
           },
           create: {
             academyId: session.user.academyId,
             key: item.key,
-            value: item.value,
+            value:
+              typeof item.value === 'string' ? item.value : JSON.stringify(item.value ?? null),
           },
         }),
       ),

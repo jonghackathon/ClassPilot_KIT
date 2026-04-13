@@ -17,7 +17,7 @@ function buildAnswer(question: string) {
 export async function GET(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { session, error } = await withAuth(['ADMIN', 'STUDENT'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 

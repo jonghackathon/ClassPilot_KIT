@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
   if (!isCronRequest) {
     const { session, error } = await withAuth(['ADMIN'])
 
-    if (error || !session) {
-      return error
-    }
+    if (error) {
+    return error
+  }
 
     sessionAcademyId = session.user.academyId
   }
