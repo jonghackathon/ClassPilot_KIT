@@ -86,6 +86,38 @@ export function buildReviewGenerationPrompt(input: ReviewGenerationPromptInput) 
   ])
 }
 
+type CopilotAnswerPromptInput = {
+  question: string
+  topic?: string | null
+}
+
+export function buildCopilotAnswerPrompt(input: CopilotAnswerPromptInput) {
+  return renderSections([
+    {
+      heading: '역할',
+      content: '학원 강사가 수업 중 학생 질문을 받았을 때 즉시 활용할 수 있는 교수법 카드를 만든다.',
+    },
+    {
+      heading: '수업 주제',
+      content: input.topic ?? '현재 수업 주제',
+    },
+    {
+      heading: '학생 질문',
+      content: input.question,
+    },
+    {
+      heading: '출력 지침',
+      content: `아래 JSON 형식만 반환하고 다른 텍스트는 쓰지 않는다.
+{
+  "beginner": "입문 학생에게 일상 예시로 풀어 설명하는 1~2문장",
+  "example": "칠판에 바로 쓸 수 있는 짧은 예제 1개",
+  "advanced": "조건을 바꿔 던지는 심화 확장 질문 1개",
+  "summary": "핵심 개념·예제·확장 질문을 아우르는 한 줄 요약"
+}`,
+    },
+  ])
+}
+
 export function buildComplaintDraftPrompt(input: ComplaintDraftPromptInput) {
   return renderSections([
     {

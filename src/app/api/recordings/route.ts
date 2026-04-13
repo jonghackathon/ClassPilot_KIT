@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto'
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 import { toFile } from 'openai'
+import { after } from 'next/server'
 import { z } from 'zod'
 
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
@@ -13,6 +14,7 @@ import { parseRequestBody } from '@/lib/route-helpers'
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 const recordingStatuses = new Set(['PROCESSING', 'COMPLETED', 'FAILED'] as const)
 const publicRecordingDir = path.join(process.cwd(), 'public', 'uploads', 'recordings')
@@ -234,45 +236,51 @@ export async function POST(request: Request) {
     }
 
     let audioUrl = data.audioUrl?.trim() || null
-    let normalizedTranscript = data.transcript?.trim() || null
-    let status: 'PROCESSING' | 'COMPLETED' | 'FAILED' = normalizedTranscript
-      ? 'COMPLETED'
-      : 'PROCESSING'
-    let progress = normalizedTranscript ? 100 : uploadedFile ? 25 : 15
+    const normalizedTranscript = data.transcript?.trim() || null
 
-    if (uploadedFile) {
-      const stored = await storeRecordingFile(uploadedFile)
-      audioUrl = stored.audioUrl
-
-      try {
-        normalizedTranscript =
-          normalizedTranscript ||
-          (await transcribeRecording({
-            fileBuffer: stored.fileBuffer,
-            fileName: stored.storedName,
-            mimeType: uploadedFile.type,
-          }))
-
-        status = normalizedTranscript ? 'COMPLETED' : 'FAILED'
-        progress = normalizedTranscript ? 100 : 0
-      } catch {
-        status = 'FAILED'
-        progress = 0
-      }
+    // If a transcript was provided directly, we can complete immediately
+    if (!uploadedFile) {
+      const generated = normalizedTranscript ? summarizeTranscript(normalizedTranscript) : null
+      const created = await prisma.recordingSummary.create({
+        data: {
+          lessonId: data.lessonId,
+          audioUrl,
+          transcript: normalizedTranscript,
+          summary: generated?.summary ?? null,
+          questions: generated?.questions ?? null,
+          nextPoints: generated?.nextPoints ?? null,
+          status: normalizedTranscript ? 'COMPLETED' : 'PROCESSING',
+          progress: normalizedTranscript ? 100 : 15,
+        },
+        include: {
+          lesson: {
+            select: {
+              id: true,
+              date: true,
+              topic: true,
+              class: { select: { id: true, name: true } },
+            },
+          },
+        },
+      })
+      return successResponse(created, 201)
     }
 
-    const generated = normalizedTranscript ? summarizeTranscript(normalizedTranscript) : null
+    // File upload: store the file and return a PROCESSING record immediately.
+    // Whisper transcription runs after the response is sent via after().
+    const stored = await storeRecordingFile(uploadedFile)
+    audioUrl = stored.audioUrl
 
     const created = await prisma.recordingSummary.create({
       data: {
         lessonId: data.lessonId,
         audioUrl,
         transcript: normalizedTranscript,
-        summary: generated?.summary ?? null,
-        questions: generated?.questions ?? null,
-        nextPoints: generated?.nextPoints ?? null,
-        status,
-        progress,
+        summary: null,
+        questions: null,
+        nextPoints: null,
+        status: normalizedTranscript ? 'COMPLETED' : 'PROCESSING',
+        progress: normalizedTranscript ? 100 : 25,
       },
       include: {
         lesson: {
@@ -285,6 +293,44 @@ export async function POST(request: Request) {
         },
       },
     })
+
+    if (!normalizedTranscript) {
+      const recordingId = created.id
+      const { storedName } = stored
+      const mimeType = uploadedFile.type
+
+      after(async () => {
+        try {
+          const fileBuffer = await readFile(path.join(publicRecordingDir, storedName))
+          const transcript = await transcribeRecording({ fileBuffer, fileName: storedName, mimeType })
+
+          if (transcript) {
+            const generated = summarizeTranscript(transcript)
+            await prisma.recordingSummary.update({
+              where: { id: recordingId },
+              data: {
+                transcript,
+                summary: generated.summary,
+                questions: generated.questions,
+                nextPoints: generated.nextPoints,
+                status: 'COMPLETED',
+                progress: 100,
+              },
+            })
+          } else {
+            await prisma.recordingSummary.update({
+              where: { id: recordingId },
+              data: { status: 'FAILED', progress: 0 },
+            })
+          }
+        } catch {
+          await prisma.recordingSummary.update({
+            where: { id: recordingId },
+            data: { status: 'FAILED', progress: 0 },
+          }).catch(() => {})
+        }
+      })
+    }
 
     return successResponse(created, 201)
   } catch (caught) {

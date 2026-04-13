@@ -36,7 +36,11 @@ type RecordingDetail = {
 
 export function TeacherRecordingDetailPage({ id }: { id: string }) {
   const [copied, setCopied] = useState(false)
-  const { data, isLoading } = useRecordings<ApiEnvelope<RecordingDetail>>(`/api/recordings/${id}`)
+  const { data, isLoading } = useRecordings<ApiEnvelope<RecordingDetail>>(
+    `/api/recordings/${id}`,
+    (latestData: ApiEnvelope<RecordingDetail> | undefined) =>
+      latestData?.data.status === 'PROCESSING' ? 3000 : 0,
+  )
   const item = data?.data
 
   async function handleCopy() {

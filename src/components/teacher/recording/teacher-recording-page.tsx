@@ -70,7 +70,11 @@ export function TeacherRecordingPage() {
   const lessonsKey = `/api/lessons?from=${today}&to=${today}&limit=20`
   const recordingsKey = '/api/recordings?limit=20'
   const { data: lessonsResponse } = useCopilot<ApiEnvelope<PaginatedData<LessonItem>>>(lessonsKey)
-  const { data: recordingsResponse } = useRecordings<ApiEnvelope<PaginatedData<RecordingItem>>>(recordingsKey)
+  const { data: recordingsResponse } = useRecordings<ApiEnvelope<PaginatedData<RecordingItem>>>(
+    recordingsKey,
+    (latestData: ApiEnvelope<PaginatedData<RecordingItem>> | undefined) =>
+      latestData?.data.items.some((item) => item.status === 'PROCESSING') ? 5000 : 0,
+  )
   const [selectedLessonId, setSelectedLessonId] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [selectedFileName, setSelectedFileName] = useState('선택된 파일 없음')
@@ -109,8 +113,10 @@ export function TeacherRecordingPage() {
       setUploadProgress(100)
       setUploadMessage(
         payload?.data.status === 'COMPLETED'
-          ? '파일 업로드와 Whisper 전사가 완료되었습니다.'
-          : '파일은 저장되었지만 전사 생성이 실패했습니다. 상세 화면에서 상태를 확인해 주세요.',
+          ? '파일 업로드와 전사가 완료되었습니다.'
+          : payload?.data.status === 'PROCESSING'
+            ? '파일이 저장되었습니다. Whisper 전사가 진행 중이며 완료되면 자동으로 업데이트됩니다.'
+            : '파일은 저장되었지만 전사 생성이 실패했습니다. 상세 화면에서 상태를 확인해 주세요.',
       )
       setSelectedFile(null)
       setSelectedFileName('선택된 파일 없음')
