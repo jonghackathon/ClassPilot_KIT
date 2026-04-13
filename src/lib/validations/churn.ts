@@ -12,3 +12,7 @@ export const churnUpdateSchema = z
   .refine((value) => Object.values(value).some((item) => item !== undefined), {
     message: '하나 이상의 수정 항목이 필요합니다.',
   })
+
+export const churnBatchSchema = z.object({
+  studentIds: z.array(z.string().cuid()).optional(),
+})

@@ -10,6 +10,7 @@ import {
   MessageSquareWarning,
   Search,
   ShieldCheck,
+  Sparkles,
   TriangleAlert,
   X,
 } from 'lucide-react'
@@ -117,12 +118,14 @@ function Field({
   onChange,
   placeholder,
   textarea = false,
+  disabled = false,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   placeholder: string
   textarea?: boolean
+  disabled?: boolean
 }) {
   return (
     <label className="block space-y-2">
@@ -130,6 +133,7 @@ function Field({
       {textarea ? (
         <textarea
           className="min-h-[120px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700 outline-none"
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           value={value}
@@ -137,6 +141,7 @@ function Field({
       ) : (
         <input
           className="h-[52px] w-full rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none"
+          disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}
           value={value}
@@ -218,6 +223,7 @@ export function AdminComplaintsManagerPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [responseOpen, setResponseOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isDraftGenerating, setIsDraftGenerating] = useState(false)
   const [form, setForm] = useState<ComplaintFormState | null>(null)
   const [feedback, setFeedback] = useState<{
     tone: Tone
@@ -328,12 +334,79 @@ export function AdminComplaintsManagerPage() {
     }
   }
 
+  async function handleGenerateDraft() {
+    if (!selectedComplaint) {
+      return
+    }
+
+    setIsDraftGenerating(true)
+    setFeedback(null)
+
+    try {
+      const response = await apiRequest<ApiEnvelope<ComplaintItem>>(
+        `/api/complaints/${selectedComplaint.id}/ai-draft`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        },
+      )
+
+      await mutate()
+      setForm((current) => {
+        const base = current ?? buildForm(selectedComplaint)
+        return {
+          ...base,
+          aiDraft: response.data.aiDraft ?? '',
+        }
+      })
+      setFeedback({
+        tone: 'emerald',
+        title: 'AI 초안을 생성했습니다.',
+        description: '초안을 검토한 뒤 필요한 문장만 다듬어 최종 응답으로 저장해 주세요.',
+      })
+    } catch (caught) {
+      setFeedback({
+        tone: 'rose',
+        title: 'AI 초안 생성에 실패했습니다.',
+        description:
+          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+      })
+    } finally {
+      setIsDraftGenerating(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="민원 관리"
         title="민원 접수부터 응답 작성까지 한 흐름에서 처리해요"
         description="실제 접수 데이터 기준으로 상태를 정리하고, 응답 초안과 최종 답변을 한 패널에서 저장할 수 있게 연결했습니다."
+        action={
+          selectedComplaint ? (
+            <button
+              className={cx(
+                primaryButton,
+                'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20',
+              )}
+              disabled={isDraftGenerating}
+              onClick={() => {
+                setSelectedId(selectedComplaint.id)
+                setForm(buildForm(selectedComplaint))
+                setResponseOpen(true)
+                void handleGenerateDraft()
+              }}
+              type="button"
+            >
+              {isDraftGenerating ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              AI 초안 생성
+            </button>
+          ) : null
+        }
       />
 
       {feedback ? (
@@ -653,10 +726,33 @@ export function AdminComplaintsManagerPage() {
                   current ? { ...current, aiDraft: value } : current,
                 )
               }
-              placeholder="내부 확인 후 오늘 오후 6시까지 다시 안내드리겠습니다."
+              placeholder={
+                isDraftGenerating
+                  ? 'AI가 초안을 작성 중이에요...'
+                  : '내부 확인 후 오늘 오후 6시까지 다시 안내드리겠습니다.'
+              }
               textarea
+              disabled={isDraftGenerating}
               value={form.aiDraft}
             />
+            <div className="flex justify-end">
+              <button
+                className={cx(
+                  secondaryButton,
+                  'border-violet-200 text-violet-700 hover:border-violet-300',
+                )}
+                disabled={isDraftGenerating}
+                onClick={() => void handleGenerateDraft()}
+                type="button"
+              >
+                {isDraftGenerating ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {isDraftGenerating ? '초안 생성 중...' : 'AI 초안 생성'}
+              </button>
+            </div>
             <Field
               label="최종 응답"
               onChange={(value) =>
@@ -684,7 +780,7 @@ export function AdminComplaintsManagerPage() {
                   primaryButton,
                   'bg-gradient-to-r from-indigo-600 to-sky-500 shadow-indigo-500/20',
                 )}
-                disabled={isSaving}
+                disabled={isSaving || isDraftGenerating}
                 onClick={handleSubmit}
                 type="button"
               >
