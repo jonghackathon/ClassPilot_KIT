@@ -47,7 +47,7 @@ npm install @anthropic-ai/sdk openai
 
 | # | 기능 | 트리거 | 모델 | 저장 필드 | 현재 route 상태 | 현재 화면 상태 |
 |---|------|--------|------|---------|--------------|-------------|
-| 6-1 | AI Copilot | 교사 수업 중 질문 | Claude SSE | `CopilotQuestion` | 있음, 전면 재작성 필요 | 하드코딩 |
+| 6-1 | AI Copilot | 교사 수업 중 질문 | Claude JSON MVP | `CopilotQuestion` | 있음, 전면 재작성 필요 | 하드코딩 |
 | 6-2 | 에세이 피드백 | 교사 피드백 초안 요청 | Claude | `Submission.teacherFeedback` | 없음, 신규 | 버튼 없음 |
 | 6-3 | 성장 리포트 | 어드민/교사 월별 생성 | Claude | `ReportData` | **있음**, AI 호출만 연결 | 하드코딩 |
 | 6-4 | Whisper 녹음 변환 | 교사 음성 파일 업로드 | Whisper+Claude | `RecordingSummary` | 있음, 전면 재작성 필요 | 하드코딩 |
@@ -112,7 +112,7 @@ export function complaintDraftPrompt(complaintContent: string): string
 
 ---
 
-## 6-1. AI Copilot (SSE 스트리밍)
+## 6-1. AI Copilot (JSON MVP)
 
 ### 현재 route 버그 (전면 재작성)
 
@@ -144,16 +144,15 @@ export function complaintDraftPrompt(complaintContent: string): string
 - copilotSession.context 참조 → context 필드 없음 (lesson.topic으로 교체)
 - create data에 answer, used 필드 → 모델에 없음
 - status: 'IN_PROGRESS' 업데이트 → enum에 없음
-- buildCopilotAnswer() mock → 실제 Claude SSE 스트리밍으로 교체
+- buildCopilotAnswer() mock → Claude JSON 응답으로 교체
 
 실제 CopilotQuestion 모델: sessionId, question, beginner, example, advanced, summary, usedCards[]
 
 수정 후 흐름:
 1. CopilotSession 조회 시 lesson.topic 포함 join
-2. ReadableStream 생성 → text/event-stream 응답
-3. Claude stream 호출 (4카드 JSON 응답)
-4. 스트리밍 청크 → SSE 포맷으로 전달
-5. 완료 후 CopilotQuestion.create (beginner/example/advanced/summary)
+2. Claude 호출 (4카드 JSON 응답)
+3. 응답 파싱 후 CopilotQuestion.create (beginner/example/advanced/summary)
+4. 세션 화면은 저장된 카드와 히스토리를 다시 조회
 ```
 
 **Claude 응답 JSON:**
@@ -181,9 +180,6 @@ export function complaintDraftPrompt(complaintContent: string): string
 #### `src/hooks/useCopilot.ts`
 
 ```typescript
-// SSE 연결 + 스트리밍 버퍼 관리
-function useCopilotStream(sessionId: string)
-
 // 세션 목록 (lessonId 기준)
 function useCopilotSessions(lessonId?: string)
 
@@ -196,7 +192,7 @@ function useCopilotSession(sessionId?: string)
 분리 후 실데이터 연결. 구성:
 - 상단: `lesson.topic` 표시 (GET /api/lessons/[lessonId])
 - 질문 입력창 + 전송 버튼
-- SSE 수신 중: Skeleton 4카드 + 스트리밍 텍스트 누적 표시
+- 요청 중: 버튼 disabled + Spinner
 - 완료: beginner/example/advanced/summary 탭 카드 UI
 - 각 카드 복사 버튼: `navigator.clipboard.writeText`
 - 이전 질문 히스토리 스크롤
@@ -230,15 +226,10 @@ GET /api/lessons?from=2026-04-13&to=2026-04-13
 
 ### 로딩 UI
 
-```typescript
-const [isStreaming, setIsStreaming] = useState(false)
-const [streamBuffer, setStreamBuffer] = useState('')
-```
-
 | 상태 | UI |
 |------|-----|
-| 전송 버튼 (스트리밍 중) | disabled + Spinner + "생성 중..." |
-| 카드 영역 (스트리밍 중) | Skeleton 4개 + streamBuffer 실시간 표시 |
+| 전송 버튼 (생성 중) | disabled + Spinner + "생성 중..." |
+| 카드 영역 (요청 중) | Skeleton 4개 |
 | 완료 | 4카드 탭 렌더링 |
 | 실패 | rose 배경 에러 메시지 + 재시도 버튼 |
 
@@ -377,18 +368,14 @@ const [isGenerating, setIsGenerating] = useState(false)
   id, lessonId(필수), audioUrl, transcript, summary, questions,
   nextPoints, status(PROCESSING|COMPLETED|FAILED), progress(0~100)
 
-수정 후 POST body: multipart/form-data { lessonId: string, audio: File }
+수정 후 POST body: multipart/form-data { lessonId: string, file: File }
 
 수정 후 흐름:
 1. lessonId로 Lesson 조회 (topic 포함, academy 확인)
-2. RecordingSummary create → status: PROCESSING, progress: 0
-3. 즉시 201 응답 (id 포함)
-4. 백그라운드:
-   a. Whisper 호출 → transcript
-   b. progress: 60 업데이트
-   c. Claude 호출 → summary/questions/nextPoints
-   d. status: COMPLETED, progress: 100 업데이트
-   e. 실패 시: status: FAILED
+2. 업로드 파일을 `/public/uploads/recordings`에 저장
+3. Whisper 호출 → transcript 생성
+4. transcript 기반 summary/questions/nextPoints 생성
+5. RecordingSummary.create → status: COMPLETED 또는 FAILED
 ```
 
 **Claude 녹음 요약 응답 JSON:**
@@ -402,38 +389,31 @@ const [isGenerating, setIsGenerating] = useState(false)
 
 #### `src/app/api/recordings/[id]/route.ts`
 
-GET 단건 조회 — polling용. 현재 구현 확인 후 필요시 보강.
+GET 단건 조회 — 상세 화면 재조회용. `audioUrl`, `transcript`, `summary`, `questions`, `nextPoints`를 반환한다.
 
 ### 화면 연결 (`src/components/teacher/recording/teacher-recording-page.tsx`)
 
-분리 후 실데이터 연결. 5단계 흐름:
+분리 후 실데이터 연결. 현재 구현 기준 흐름:
 
 ```
 1. 수업 선택: GET /api/lessons (최근 수업 드롭다운)
 2. 파일 선택: accept=".m4a,.mp3,.wav,.webm", 25MB 제한
-3. 업로드: multipart POST → recordingId 수령
-4. polling: 5초마다 GET /api/recordings/[id] → progress 값으로 ProgressBar 갱신
-5. 완료: summary/questions/nextPoints 표시
+3. 업로드: multipart POST → 녹음 레코드 생성
+4. Whisper 전사 결과와 요약 저장
+5. 상세 화면에서 transcript, summary, questions, nextPoints, audio 재생 확인
 ```
 
 ### 로딩 UI
 
-```typescript
-const [uploadState, setUploadState] = useState<'idle'|'uploading'|'processing'|'done'|'failed'>('idle')
-const [progress, setProgress] = useState(0)
-const [recordingId, setRecordingId] = useState<string | null>(null)
-```
-
 | 단계 | ProgressBar 값 | 색상 |
 |------|--------------|------|
 | 업로드 중 | 10~30 | indigo |
-| Whisper 변환 중 | 30~60 | indigo |
-| Claude 요약 중 | 60~90 | indigo |
+| Whisper 전사 중 | 30~70 | indigo |
 | 완료 | 100 | emerald |
 | 실패 | — | rose 에러 메시지 |
 
-> **주의:** Vercel 무료 플랜 함수 실행 10초 제한. 초기 구현은 5분 이하 파일 기준 동기 처리.
-> 이후 필요 시 Edge Runtime 또는 별도 job으로 전환.
+> **메모:** 현재 구현은 업로드 요청 안에서 전사와 요약까지 처리하는 단순한 방식이다.
+> queue/background job 기반 비동기 파이프라인은 후속 고도화로 분리한다.
 
 ---
 
@@ -642,7 +622,7 @@ npm install @anthropic-ai/sdk openai
 | `src/app/api/reviews/generate/route.ts` | 복습 자동 생성 |
 | `src/app/api/churn/batch/route.ts` | 이탈 예측 배치 |
 | `src/app/api/complaints/[id]/ai-draft/route.ts` | 민원 AI 초안 |
-| `src/hooks/useCopilot.ts` | Copilot SSE 훅 |
+| `src/hooks/useCopilot.ts` | Copilot 훅 |
 | `src/components/teacher/copilot/teacher-copilot-landing-page.tsx` | Copilot 목록 (분리) |
 | `src/components/teacher/copilot/teacher-copilot-session-page.tsx` | Copilot 세션 (분리 + 실연결) |
 | `src/components/teacher/recording/teacher-recording-page.tsx` | 녹음 목록 (분리 + 실연결) |
@@ -701,10 +681,10 @@ export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 
 | 기능 | 버튼 disabled | Spinner | Skeleton/Progress | 에러 표시 | 소요시간 안내 |
 |------|-------------|---------|------------------|---------|------------|
-| Copilot 질문 전송 | [ ] | [ ] | [ ] Skeleton 카드 4개 | [ ] | 불필요 (SSE 실시간) |
+| Copilot 질문 전송 | [ ] | [ ] | [ ] Skeleton 카드 4개 | [ ] | [ ] |
 | 에세이 피드백 초안 | [ ] | [ ] | [ ] textarea disabled | [ ] | [ ] "3~8초" |
 | 성장 리포트 생성 | [ ] | [ ] | [ ] Skeleton 3줄 | [ ] | [ ] "5~10초" |
-| Whisper 업로드 | [ ] | [ ] | [x] ProgressBar 있음 | [ ] | 자동 (polling) |
+| Whisper 업로드 | [ ] | [ ] | [x] ProgressBar 있음 | [ ] | [ ] |
 | 복습 자동 생성 | [ ] | [ ] | 불필요 | [ ] | [ ] "5~15초" |
 | 이탈 예측 갱신 | [ ] | [ ] | [ ] 목록 Skeleton | [ ] | [ ] "10~30초" |
 | 민원 AI 초안 | [ ] | [x] 패턴 있음 | [ ] textarea | [ ] | 불필요 (3초 내) |
@@ -761,10 +741,10 @@ export function Spinner({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
 
 ## 결과물
 
-- AI Copilot 실시간 대화 (Claude SSE, 4카드 응답)
+- AI Copilot 질문 응답 (Claude JSON MVP, 4카드 응답)
 - 에세이 자동 피드백 초안 (교사 확정)
 - 성장 리포트 자연어 생성 (Claude)
-- 음성 수업 녹음 변환 + 요약 (Whisper + Claude)
+- 음성 수업 녹음 업로드 + Whisper 전사 + 요약
 - 수업별 복습 자동 출제 (Claude, 4지선다 3문제)
 - 이탈 위험 학생 자동 계산 (일일 Cron)
 - 민원 응답 AI 초안 (Claude, 어드민 확정)
