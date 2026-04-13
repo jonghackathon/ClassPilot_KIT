@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   Bell,
   BookOpen,
@@ -13,16 +13,13 @@ import {
   NotebookPen,
 } from 'lucide-react'
 
+import { NotificationPopover } from '@/components/notifications/NotificationPopover'
+
 const navigation = [
   { href: '/student/home', label: '홈', icon: Home },
   { href: '/student/attendance', label: '출결', icon: CalendarCheck2 },
   { href: '/student/assignments', label: '과제', icon: NotebookPen },
   { href: '/student/review', label: '복습', icon: BookOpen },
-]
-
-const notifications = [
-  { title: '과제 마감 D-3', detail: '이차방정식 풀이 과제를 오늘 이어서 작성하면 좋아요.' },
-  { title: '새 복습 자료 도착', detail: '4월 8일 수업 요약과 퀴즈 3문제가 추가됐어요.' },
 ]
 
 export default function StudentLayout({
@@ -33,6 +30,7 @@ export default function StudentLayout({
   const pathname = usePathname()
   const { data: session } = useSession()
   const [alarmOpen, setAlarmOpen] = useState(false)
+  const [alarmPath, setAlarmPath] = useState<string | null>(null)
 
   const displayName = session?.user?.name?.replace(/님$/, '') ?? '민수'
 
@@ -46,13 +44,11 @@ export default function StudentLayout({
     [],
   )
 
-  useEffect(() => {
-    setAlarmOpen(false)
-  }, [pathname])
+  const isAlarmVisible = alarmOpen && alarmPath === pathname
 
   return (
     <div
-      className="min-h-screen bg-transparent"
+      className="min-h-dvh bg-transparent"
       style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
     >
       <div className="mx-auto max-w-[680px] px-4 pt-4">
@@ -80,25 +76,21 @@ export default function StudentLayout({
               </div>
               <button
                 className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-sky-200 hover:text-sky-600"
-                onClick={() => setAlarmOpen((current) => !current)}
+                onClick={() => {
+                  setAlarmOpen((current) => !current)
+                  setAlarmPath(pathname)
+                }}
                 type="button"
               >
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-sky-500" />
               </button>
 
-              {alarmOpen ? (
-                <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10 sm:w-[320px]">
-                  <p className="text-sm font-semibold text-slate-900">알림</p>
-                  <div className="mt-4 space-y-3">
-                    {notifications.map((item) => (
-                      <div key={item.title} className="rounded-2xl bg-slate-50 px-4 py-4">
-                        <p className="font-semibold text-slate-900">{item.title}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {isAlarmVisible ? (
+                <NotificationPopover
+                  className="absolute right-0 top-[calc(100%+12px)] z-30 w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10 sm:w-[320px]"
+                  title="알림"
+                />
               ) : null}
             </div>
           </div>

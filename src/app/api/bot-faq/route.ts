@@ -3,9 +3,9 @@ import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-res
 import { getPageParams, withAuth } from '@/lib/with-auth'
 
 export async function GET(request: Request) {
-  const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
+  const { error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
 
-  if (error || !session?.user) {
+  if (error) {
     return error
   }
 
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     const [items, total] = await Promise.all([
       prisma.botFAQ.findMany({
         where,
-        orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+        orderBy: [{ createdAt: 'desc' }],
         skip,
         take: limit,
       }),
@@ -56,7 +56,6 @@ export async function POST(request: Request) {
       classId?: string | null
       question?: string
       answer?: string
-      sortOrder?: number
     }
 
     if (!body.question?.trim() || !body.answer?.trim()) {
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
         classId: body.classId ?? null,
         question: body.question.trim(),
         answer: body.answer.trim(),
-        sortOrder: body.sortOrder ?? 0,
       },
     })
 

@@ -5,7 +5,7 @@ import { withAuth } from '@/lib/with-auth'
 export async function GET() {
   const { session, error } = await withAuth()
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

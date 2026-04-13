@@ -31,6 +31,7 @@ import {
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
 type RiskFilter = '전체' | '높음' | '주의' | '정상'
+type RiskLabel = Exclude<RiskFilter, '전체'>
 type AttendanceStatus = 'PRESENT' | 'LATE' | 'EARLY_LEAVE' | 'ABSENT'
 type ChurnLevel = 'SAFE' | 'WARNING' | 'DANGER'
 type PaymentStatus = 'PAID' | 'UNPAID' | 'PARTIAL'
@@ -65,6 +66,7 @@ type ParentContact = {
 }
 
 type StudentProfile = {
+  studentCode: string | null
   grade: string | null
   school: string | null
   birthDate?: string | null
@@ -77,7 +79,16 @@ type EnrollmentItem = {
 }
 
 type AttendanceSummaryItem = {
+  id?: string
+  date?: string
   status: AttendanceStatus
+  absenceReason?: string | null
+  homeworkStatus?: 'COMPLETE' | 'INCOMPLETE' | null
+  class?: {
+    id: string
+    name: string
+    subject: string | null
+  }
 }
 
 type AttendanceDetailItem = {
@@ -143,7 +154,7 @@ type PaymentItem = {
 type StudentListItem = {
   id: string
   name: string
-  email: string
+  email: string | null
   phone: string | null
   active: boolean
   studentProfile: StudentProfile | null
@@ -207,6 +218,9 @@ const emptyConsultationForm: ConsultationFormState = {
   type: 'PHONE',
   content: '',
 }
+
+const emptyStudents: StudentListItem[] = []
+const emptyClasses: ClassItem[] = []
 
 function OverlayPanel({
   open,
@@ -343,7 +357,7 @@ function getAttendanceTone(rate: number | null): Tone {
   return 'rose'
 }
 
-function getRiskMeta(level?: ChurnLevel | null) {
+function getRiskMeta(level?: ChurnLevel | null): { label: RiskLabel; tone: Tone } {
   if (level === 'DANGER') {
     return { label: '높음', tone: 'rose' as Tone }
   }
@@ -607,8 +621,8 @@ export function AdminStudentsManagerPage() {
   const { data: classesResponse } =
     useClasses<ApiEnvelope<PaginatedData<ClassItem>>>('?limit=100')
 
-  const students = data?.data.items ?? []
-  const classes = classesResponse?.data.items ?? []
+  const students = data?.data.items ?? emptyStudents
+  const classes = classesResponse?.data.items ?? emptyClasses
 
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
@@ -624,7 +638,7 @@ export function AdminStudentsManagerPage() {
         acc[risk] += 1
         return acc
       },
-      { 높음: 0, 주의: 0, 정상: 0 },
+      { 높음: 0, 주의: 0, 정상: 0 } as Record<RiskLabel, number>,
     )
   }, [filteredStudents])
 
@@ -975,7 +989,7 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
 
     setEditForm({
       name: student.name,
-      email: student.email,
+      email: student.email ?? '',
       password: '1234',
       phone: student.phone ?? '',
       grade: student.studentProfile?.grade ?? '',
@@ -1222,7 +1236,12 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
 
             <div className="grid gap-3 text-sm text-slate-600">
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
-                이메일: {student.email}
+                학번: {student.studentProfile?.studentCode ?? (
+                  <span className="text-slate-400">미발급</span>
+                )}
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                이메일: {student.email ?? <span className="text-slate-400">없음</span>}
               </div>
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
                 연락처: {student.phone ?? '미등록'}
@@ -1237,6 +1256,8 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
                   : '미배정'}
               </div>
             </div>
+
+            <PinResetButton studentId={student.id} studentName={student.name} onDone={() => mutate()} />
 
             <div
               className={cx(
@@ -1342,22 +1363,24 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
                     출결 기록이 없습니다.
                   </div>
                 ) : (
-                  student.attendances.map((item) => {
-                    const meta = getAttendanceStatusMeta(item.status)
+	                  student.attendances.map((item) => {
+	                    const meta = getAttendanceStatusMeta(item.status)
+	                    const classLabel = item.class?.name ?? '반 정보 없음'
+	                    const classSubject = item.class?.subject ? ` · ${item.class.subject}` : ''
 
-                    return (
-                      <div
+	                    return (
+	                      <div
                         key={item.id}
-                        className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
-                      >
-                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div>
-                            <p className="font-semibold text-slate-900">{item.class.name}</p>
-                            <p className="mt-1 text-sm text-slate-500">
-                              {formatDate(item.date)}
-                              {item.class.subject ? ` · ${item.class.subject}` : ''}
-                            </p>
-                          </div>
+	                        className="rounded-[24px] border border-slate-200 bg-white px-4 py-4"
+	                      >
+	                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+	                          <div>
+	                            <p className="font-semibold text-slate-900">{classLabel}</p>
+	                            <p className="mt-1 text-sm text-slate-500">
+	                              {formatDate(item.date)}
+	                              {classSubject}
+	                            </p>
+	                          </div>
                           <div className="flex flex-wrap gap-2">
                             <StatusBadge label={meta.label} tone={meta.tone} />
                             {item.homeworkStatus ? (
@@ -1598,6 +1621,59 @@ export function AdminStudentDetailManagerPage({ studentId }: { studentId: string
           </button>
         </div>
       </OverlayPanel>
+    </div>
+  )
+}
+
+// ─── PIN 초기화 버튼 ─────────────────────────────────────────────────────────
+
+function PinResetButton({
+  studentId,
+  studentName,
+  onDone,
+}: {
+  studentId: string
+  studentName: string
+  onDone: () => void
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+
+  async function handleReset() {
+    if (!window.confirm(`${studentName} 학생의 PIN을 0000으로 초기화할까요?`)) return
+    setStatus('loading')
+    try {
+      await apiRequest(`/api/users/${studentId}/reset-pin`, { method: 'POST' })
+      setStatus('done')
+      onDone()
+      setTimeout(() => setStatus('idle'), 3000)
+    } catch {
+      setStatus('error')
+      setTimeout(() => setStatus('idle'), 3000)
+    }
+  }
+
+  return (
+    <div className="rounded-[24px] border border-slate-200 bg-white p-4">
+      <p className="text-sm font-semibold text-slate-800">수강생 로그인 PIN</p>
+      <p className="mt-1 text-xs text-slate-500">
+        PIN을 초기화하면 임시 PIN(0000)으로 변경돼요. 학생에게 전달 후 변경하도록 안내하세요.
+      </p>
+      <button
+        type="button"
+        onClick={handleReset}
+        disabled={status === 'loading'}
+        className={cx(
+          'mt-3 inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition',
+          status === 'done'
+            ? 'bg-emerald-50 text-emerald-700'
+            : status === 'error'
+              ? 'bg-rose-50 text-rose-700'
+              : 'bg-slate-950 text-white hover:bg-slate-800 disabled:opacity-60',
+        )}
+      >
+        {status === 'loading' && <LoaderCircle className="h-4 w-4 animate-spin" />}
+        {status === 'done' ? '초기화 완료 (0000)' : status === 'error' ? '초기화 실패' : 'PIN 초기화'}
+      </button>
     </div>
   )
 }

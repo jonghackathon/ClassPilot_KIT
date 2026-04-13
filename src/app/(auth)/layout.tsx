@@ -1,3 +1,10 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: '로그인',
+  description: 'ClassPilot에 로그인하여 역할별 워크스페이스를 시작하세요.',
+}
+
 export default function AuthLayout({
   children,
 }: {
@@ -18,12 +25,12 @@ export default function AuthLayout({
 
             <div className="space-y-5">
               <p className="text-sm uppercase tracking-[0.32em] text-sky-200/80">
-                AcadeMind Workspace
+                ClassPilot Workspace
               </p>
               <h1 className="text-5xl font-semibold leading-tight text-white">
                 운영은 더 선명하게,
                 <br />
-                수업은 더 자연스럽게 이어지는 학원 플랫폼
+                수업은 더 자연스럽게
               </h1>
               <p className="max-w-lg text-lg leading-8 text-slate-300">
                 운영자는 흐름을 보고, 강사는 수업에 집중하고, 수강생은 오늘
@@ -33,30 +40,21 @@ export default function AuthLayout({
 
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="rounded-3xl border border-white/12 bg-white/8 p-5 backdrop-blur">
-                <p className="text-3xl font-semibold">87</p>
-                <p className="mt-2 text-sm text-slate-300">전체 수강생</p>
-              </div>
-              <div className="rounded-3xl border border-white/12 bg-white/8 p-5 backdrop-blur">
-                <p className="text-3xl font-semibold">12</p>
-                <p className="mt-2 text-sm text-slate-300">오늘 수업 반</p>
-              </div>
-              <div className="rounded-3xl border border-white/12 bg-white/8 p-5 backdrop-blur">
-                <p className="text-3xl font-semibold">3m</p>
-                <p className="mt-2 text-sm text-slate-300">AI 요약 평균 시간</p>
-              </div>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-6 backdrop-blur">
-                <p className="text-sm text-slate-300">운영자</p>
-                <p className="mt-3 text-lg font-medium text-white">
-                  미납, 이탈 위험, 오늘 수업을 한 화면에서 관리
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">원장</p>
+                <p className="mt-3 text-sm font-medium text-white leading-6">
+                  미납, 이탈 위험을 한눈에 파악
                 </p>
               </div>
-              <div className="rounded-[28px] border border-white/10 bg-white/8 p-6 backdrop-blur">
-                <p className="text-sm text-slate-300">강사와 수강생</p>
-                <p className="mt-3 text-lg font-medium text-white">
-                  출결, 과제, 복습 흐름을 끊지 않는 역할별 화면
+              <div className="rounded-3xl border border-white/12 bg-white/8 p-5 backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">강사</p>
+                <p className="mt-3 text-sm font-medium text-white leading-6">
+                  출결과 AI 코파일럿을 수업 흐름에서
+                </p>
+              </div>
+              <div className="rounded-3xl border border-white/12 bg-white/8 p-5 backdrop-blur">
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">수강생</p>
+                <p className="mt-3 text-sm font-medium text-white leading-6">
+                  과제와 복습을 오늘 바로 확인
                 </p>
               </div>
             </div>

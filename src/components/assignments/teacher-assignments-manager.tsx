@@ -27,9 +27,10 @@ import {
   SurfaceCard,
   cx,
 } from '@/components/frontend/common'
+import { EssayFeedback } from '@/components/ai/EssayFeedback'
 
 type Tone = 'indigo' | 'sky' | 'violet' | 'emerald' | 'amber' | 'rose' | 'slate'
-type AssignmentType = 'CODING' | 'ESSAY' | 'IMAGE'
+type AssignmentType = 'WORKBOOK' | 'ESSAY' | 'IMAGE'
 type SubmissionStatus = 'DRAFT' | 'SUBMITTED' | 'REVIEWED'
 
 type ApiEnvelope<T> = {
@@ -175,7 +176,7 @@ const chipButton = 'rounded-full px-3 py-2 text-sm font-medium transition'
 const emptyAssignmentForm: AssignmentFormState = {
   classId: '',
   title: '',
-  type: 'CODING',
+  type: 'WORKBOOK',
   dueDate: '',
   content: '',
   teacherNote: '',
@@ -288,13 +289,13 @@ function formatDateTime(value?: string | null) {
 }
 
 function formatAssignmentType(type: AssignmentType) {
-  if (type === 'CODING') return '코딩'
+  if (type === 'WORKBOOK') return '문제풀이'
   if (type === 'IMAGE') return '이미지'
   return '에세이'
 }
 
 function getAssignmentTone(type: AssignmentType): Tone {
-  if (type === 'CODING') return 'indigo'
+  if (type === 'WORKBOOK') return 'indigo'
   if (type === 'IMAGE') return 'sky'
   return 'violet'
 }
@@ -360,6 +361,19 @@ function parseImageUrls(value: string) {
     .split('\n')
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+function getLatestSubmissionText(submission: SubmissionItem | null) {
+  if (!submission) {
+    return ''
+  }
+
+  const latestHistory = [...submission.history].sort(
+    (left, right) =>
+      new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
+  )[0]
+
+  return latestHistory?.content?.trim() || submission.content?.trim() || ''
 }
 
 export function TeacherAssignmentsManagerPage() {
@@ -607,7 +621,7 @@ export function TeacherAssignmentsManagerPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {(['전체', 'CODING', 'ESSAY', 'IMAGE'] as const).map((type) => (
+            {(['전체', 'WORKBOOK', 'ESSAY', 'IMAGE'] as const).map((type) => (
               <button
                 key={type}
                 className={cx(
@@ -719,7 +733,7 @@ export function TeacherAssignmentsManagerPage() {
             />
             <div className="mt-5 space-y-3">
               {[
-                '코딩 과제는 실행 기준과 제출 형식을 같이 적어 둡니다.',
+                '문제풀이 과제는 채점 기준과 제출 형식을 같이 적어 둡니다.',
                 '이미지 과제는 예시 이미지 URL 또는 업로드 링크를 함께 넣습니다.',
                 '제출률이 낮은 반은 마감일보다 설명 보강이 먼저 필요합니다.',
                 '피드백 대기 건수는 학생별 세부 피드백과 과제 공통 피드백으로 나눠서 관리합니다.',
@@ -798,7 +812,7 @@ export function TeacherAssignmentsManagerPage() {
               }
               value={form.type}
             >
-              <option value="CODING">코딩</option>
+              <option value="WORKBOOK">문제풀이</option>
               <option value="ESSAY">에세이</option>
               <option value="IMAGE">이미지</option>
             </select>
@@ -874,6 +888,7 @@ export function TeacherAssignmentDetailManagerPage({
   assignmentId: string
 }) {
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [essayFeedbackOpen, setEssayFeedbackOpen] = useState(false)
   const [assignmentFeedbackOpen, setAssignmentFeedbackOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
   const [selectedRow, setSelectedRow] = useState<AssignmentRow | null>(null)
@@ -897,11 +912,18 @@ export function TeacherAssignmentDetailManagerPage({
     useClasses<ApiEnvelope<PaginatedData<ClassItem>>>('?limit=100')
 
   const assignment = assignmentResponse?.data
-  const submissions = submissionsResponse?.data.items ?? []
-  const classes = classesResponse?.data.items ?? []
+  const submissions = useMemo(
+    () => submissionsResponse?.data.items ?? [],
+    [submissionsResponse],
+  )
+  const classes = useMemo(() => classesResponse?.data.items ?? [], [classesResponse])
   const currentClass = useMemo(
     () => classes.find((item) => item.id === assignment?.classId) ?? null,
     [assignment?.classId, classes],
+  )
+  const selectedSubmissionText = useMemo(
+    () => getLatestSubmissionText(selectedRow?.submission ?? null),
+    [selectedRow],
   )
 
   const rows = useMemo<AssignmentRow[]>(() => {
@@ -1316,6 +1338,30 @@ export function TeacherAssignmentDetailManagerPage({
               />
               <StatusBadge label={`AI 사용 ${selectedRow.aiUsesLabel}`} tone="violet" />
             </div>
+            {assignment.type === 'ESSAY' ? (
+              <div className="rounded-2xl bg-violet-50 px-4 py-4 text-sm text-violet-900">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="font-semibold">AI 첨삭 초안</p>
+                    <p className="mt-1 text-sm text-violet-800/80">
+                      학생 최신 제출 텍스트를 바탕으로 강사 코멘트 초안을 생성할 수 있습니다.
+                    </p>
+                  </div>
+                  <button
+                    className={cx(
+                      secondaryButton,
+                      'border-violet-200 bg-white text-violet-700 hover:border-violet-300',
+                    )}
+                    disabled={!selectedSubmissionText}
+                    onClick={() => setEssayFeedbackOpen(true)}
+                    type="button"
+                  >
+                    <Sparkles className="h-4 w-4" />
+                    AI 첨삭 초안
+                  </button>
+                </div>
+              </div>
+            ) : null}
             <div className="space-y-3 rounded-[28px] bg-slate-50 p-4">
               {selectedRow.submission.history.length > 0 ? (
                 selectedRow.submission.history.map((item) => (
@@ -1410,6 +1456,23 @@ export function TeacherAssignmentDetailManagerPage({
         </div>
       </OverlayPanel>
 
+      {selectedRow?.submission && assignment.type === 'ESSAY' ? (
+        <EssayFeedback
+          assignmentId={assignment.id}
+          assignmentTitle={assignment.title}
+          studentName={selectedRow.studentName}
+          extractedText={selectedSubmissionText}
+          open={essayFeedbackOpen}
+          onApplyTeacherComment={(teacherComment) => {
+            setStudentFeedback((current) =>
+              current.trim() ? `${current}\n\n${teacherComment}` : teacherComment,
+            )
+            setEssayFeedbackOpen(false)
+          }}
+          onClose={() => setEssayFeedbackOpen(false)}
+        />
+      ) : null}
+
       <OverlayPanel
         open={editOpen}
         onClose={() => setEditOpen(false)}
@@ -1464,7 +1527,7 @@ export function TeacherAssignmentDetailManagerPage({
                   }
                   value={editForm.type}
                 >
-                  <option value="CODING">코딩</option>
+                  <option value="WORKBOOK">문제풀이</option>
                   <option value="ESSAY">에세이</option>
                   <option value="IMAGE">이미지</option>
                 </select>

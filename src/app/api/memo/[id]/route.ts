@@ -11,14 +11,14 @@ type RouteContext = {
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const memo = await prisma.memo.findUnique({
     where: { id },
     include: {
       class: { select: { id: true, name: true, academyId: true } },
-      teacher: { select: { id: true, name: true, email: true } },
+      teacher: { select: { id: true, name: true, email: true, academyId: true } },
     },
   })
 
@@ -35,7 +35,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const current = await prisma.memo.findUnique({
@@ -82,7 +82,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(_request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const current = await prisma.memo.findUnique({
@@ -99,4 +99,3 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
   await prisma.memo.delete({ where: { id } })
   return successResponse({ id })
 }
-

@@ -8,7 +8,7 @@ import { withAuth } from '@/lib/with-auth'
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 

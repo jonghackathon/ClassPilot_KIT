@@ -46,10 +46,12 @@ async function main() {
   await resetDatabase()
 
   const password = await bcrypt.hash("1234", 10)
+  const pin = await bcrypt.hash("1234", 10) // 수강생 PIN (4자리)
 
   const academy = await prisma.academy.create({
     data: {
-      name: "AcadeMind",
+      name: "ClassPilot",
+      code: "DEMO-1234",
       settings: {
         create: [
           { key: "theme.primary", value: "indigo" },
@@ -117,16 +119,17 @@ async function main() {
   const studentMain = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "student@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "민수",
       role: "STUDENT",
       phone: "010-3333-1111",
       studentProfile: {
         create: {
+          studentCode: "2025-001",
           grade: "중2",
           school: "중앙중",
-          memo: "수학 심화반 메인 데모 계정",
+          memo: "수학 심화반 메인 데모 계정 · PIN: 1234",
           parents: {
             create: [{ name: "민수 어머니", phone: "010-9999-0001", relation: "모" }],
           },
@@ -138,12 +141,13 @@ async function main() {
   const studentJieun = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "jieun@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "이지은",
       role: "STUDENT",
       studentProfile: {
         create: {
+          studentCode: "2025-002",
           grade: "중2",
           school: "서초중",
           parents: {
@@ -157,79 +161,79 @@ async function main() {
   const studentWoojin = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "woojin@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "정우진",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중3", school: "반포중" } },
+      studentProfile: { create: { studentCode: "2025-003", grade: "중3", school: "반포중" } },
     },
   })
 
   const studentSoyoung = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "soyoung@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "한소영",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중2", school: "잠원중" } },
+      studentProfile: { create: { studentCode: "2025-004", grade: "중2", school: "잠원중" } },
     },
   })
 
   const studentTaeho = await prisma.user.create({
     data: {
       academyId: academy.id,
-      email: "taeho@academind.kr",
-      password,
+      email: null,
+      password: pin,
       name: "김태호",
       role: "STUDENT",
-      studentProfile: { create: { grade: "중1", school: "서일중" } },
+      studentProfile: { create: { studentCode: "2025-005", grade: "중1", school: "서일중" } },
     },
   })
 
-  const pythonCurriculum = await prisma.curriculumClass.create({
+  const koreanCurriculum = await prisma.curriculumClass.create({
     data: {
       academyId: academy.id,
-      name: "Python 중급 코스",
-      subject: "코딩",
+      name: "국어 논술 중급 코스",
+      subject: "국어",
       level: "중등 심화",
       sortOrder: 1,
       stages: [
         {
           id: "stage-1",
-          name: "1단계 · 반복문 기초",
+          name: "1단계 · 비문학 독해 기초",
           lessons: [
-            { number: "1-1", title: "반복문 도입", theme: "for와 while 개념" },
-            { number: "1-2", title: "for문 연습", theme: "range와 리스트 순회" },
+            { number: "1-1", title: "지문 구조 파악", theme: "문단별 핵심 문장 찾기" },
+            { number: "1-2", title: "논지 정리", theme: "주장과 근거 구분하기" },
           ],
         },
         {
           id: "stage-2",
-          name: "2단계 · 반복문 응용",
+          name: "2단계 · 서술형 답안 작성",
           lessons: [
-            { number: "2-1", title: "조건과 반복", theme: "if와 반복문 결합" },
-            { number: "2-2", title: "누적 계산", theme: "합계와 카운팅" },
-            { number: "2-3", title: "리스트 컴프리헨션", theme: "표현식 축약" },
+            { number: "2-1", title: "개요 작성법", theme: "서론-본론-결론 구조" },
+            { number: "2-2", title: "근거 제시", theme: "사례와 인용 활용" },
+            { number: "2-3", title: "첨삭과 퇴고", theme: "문장 다듬기와 논리 점검" },
           ],
         },
       ],
     },
   })
 
-  const webCurriculum = await prisma.curriculumClass.create({
+  const mathCurriculum = await prisma.curriculumClass.create({
     data: {
       academyId: academy.id,
-      name: "웹 기초 코스",
-      subject: "웹",
+      name: "수학 내신 기초 코스",
+      subject: "수학",
       level: "초급",
       sortOrder: 2,
       stages: [
         {
-          id: "stage-web-1",
-          name: "1단계 · HTML 구조",
+          id: "stage-math-1",
+          name: "1단계 · 함수 기초",
           lessons: [
-            { number: "1-1", title: "제목과 문단", theme: "콘텐츠 구조화" },
-            { number: "1-2", title: "카드 레이아웃", theme: "정보 카드 만들기" },
+            { number: "1-1", title: "일차함수 개념", theme: "그래프와 기울기" },
+            { number: "1-2", title: "이차함수 도입", theme: "꼭짓점과 축" },
           ],
         },
       ],
@@ -239,7 +243,7 @@ async function main() {
   const mathClass = await prisma.class.create({
     data: {
       academyId: academy.id,
-      curriculumId: pythonCurriculum.id,
+      curriculumId: mathCurriculum.id,
       name: "수학 A반",
       subject: "수학",
       level: "중급",
@@ -262,6 +266,7 @@ async function main() {
   const koreanClass = await prisma.class.create({
     data: {
       academyId: academy.id,
+      curriculumId: koreanCurriculum.id,
       name: "국어 A반",
       subject: "국어",
       level: "중급",
@@ -270,15 +275,15 @@ async function main() {
     },
   })
 
-  const codingClass = await prisma.class.create({
+  const mainClass = await prisma.class.create({
     data: {
       academyId: academy.id,
-      curriculumId: webCurriculum.id,
-      name: "중급 A반",
-      subject: "코딩",
+      curriculumId: koreanCurriculum.id,
+      name: "논술 중급반",
+      subject: "국어",
       level: "중급",
       capacity: 12,
-      description: "Python 반복문과 웹 기초를 연결하는 메인 데모 반",
+      description: "비문학 독해와 서술형 답안 작성을 다루는 메인 데모 반",
     },
   })
 
@@ -287,18 +292,18 @@ async function main() {
       { classId: mathClass.id, teacherId: teacherPark.id },
       { classId: englishClass.id, teacherId: teacherKim.id },
       { classId: koreanClass.id, teacherId: teacherLee.id },
-      { classId: codingClass.id, teacherId: teacherPark.id },
-      { classId: codingClass.id, teacherId: teacherJung.id },
+      { classId: mainClass.id, teacherId: teacherPark.id },
+      { classId: mainClass.id, teacherId: teacherJung.id },
     ],
   })
 
   await prisma.enrollment.createMany({
     data: [
-      { classId: codingClass.id, studentId: studentMain.id },
-      { classId: codingClass.id, studentId: studentJieun.id },
-      { classId: codingClass.id, studentId: studentWoojin.id },
-      { classId: codingClass.id, studentId: studentSoyoung.id },
-      { classId: codingClass.id, studentId: studentTaeho.id },
+      { classId: mainClass.id, studentId: studentMain.id },
+      { classId: mainClass.id, studentId: studentJieun.id },
+      { classId: mainClass.id, studentId: studentWoojin.id },
+      { classId: mainClass.id, studentId: studentSoyoung.id },
+      { classId: mainClass.id, studentId: studentTaeho.id },
       { classId: mathClass.id, studentId: studentMain.id },
       { classId: mathClass.id, studentId: studentJieun.id },
       { classId: englishClass.id, studentId: studentWoojin.id },
@@ -306,9 +311,9 @@ async function main() {
     ],
   })
 
-  const scheduleCoding = await prisma.schedule.create({
+  const scheduleMain = await prisma.schedule.create({
     data: {
-      classId: codingClass.id,
+      classId: mainClass.id,
       dayOfWeek: 1,
       startTime: "14:00",
       endTime: "15:30",
@@ -351,12 +356,12 @@ async function main() {
     },
   })
 
-  const lessonCoding = await prisma.lesson.create({
+  const lessonMain = await prisma.lesson.create({
     data: {
-      classId: codingClass.id,
-      scheduleId: scheduleCoding.id,
+      classId: mainClass.id,
+      scheduleId: scheduleMain.id,
       date: new Date("2026-04-10T14:00:00.000Z"),
-      topic: "Python 반복문과 리스트 컴프리헨션",
+      topic: "비문학 독해와 서술형 답안 작성",
       status: "COMPLETED",
     },
   })
@@ -394,82 +399,82 @@ async function main() {
   await prisma.attendance.createMany({
     data: [
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         studentId: studentJieun.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
         status: "PRESENT",
         homeworkStatus: "COMPLETE",
       },
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         studentId: studentWoojin.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
         status: "LATE",
         homeworkStatus: "INCOMPLETE",
         absenceReason: "교통 지연으로 10분 늦게 도착",
         homeworkNote: "숙제 일부만 작성",
       },
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         studentId: studentSoyoung.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
         status: "PRESENT",
         homeworkStatus: "COMPLETE",
       },
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         studentId: studentTaeho.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
         status: "ABSENT",
         homeworkStatus: "INCOMPLETE",
         absenceReason: "감기 증상으로 결석 연락",
       },
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         studentId: studentMain.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
         status: "PRESENT",
         homeworkStatus: "COMPLETE",
       },
     ],
   })
 
-  const codingAssignment = await prisma.assignment.create({
+  const workbookAssignment = await prisma.assignment.create({
     data: {
-      classId: codingClass.id,
+      classId: mainClass.id,
       teacherId: teacherPark.id,
-      title: "Python 반복문 실습",
-      content: "for문과 while문 차이를 예제 중심으로 정리하고 직접 코드를 작성해 보세요.",
-      type: "CODING",
+      title: "비문학 지문 분석 워크북",
+      content: "제시된 지문의 핵심 논지를 정리하고 문단별 요약을 작성해 보세요.",
+      type: "WORKBOOK",
       dueDate: new Date("2026-04-12T14:59:00.000Z"),
-      teacherNote: "코드와 설명을 함께 제출",
+      teacherNote: "지문 분석표와 요약을 함께 제출",
     },
   })
 
   const imageAssignment = await prisma.assignment.create({
     data: {
-      classId: codingClass.id,
+      classId: mainClass.id,
       teacherId: teacherPark.id,
-      title: "HTML 포트폴리오 페이지",
-      content: "레이아웃 결과 캡처 이미지와 함께 제출해 주세요.",
+      title: "독서 감상문 손글씨 작성",
+      content: "읽은 책의 핵심 내용과 느낀 점을 손글씨로 작성하고 스캔해 제출해 주세요.",
       type: "IMAGE",
       dueDate: new Date("2026-04-15T14:59:00.000Z"),
-      imageUrls: ["https://example.com/layout-reference.png"],
-      teacherNote: "모바일 화면 1장 포함",
+      imageUrls: ["https://example.com/sample-essay.png"],
+      teacherNote: "원고지 양식으로 작성",
     },
   })
 
   const essayAssignment = await prisma.assignment.create({
     data: {
-      classId: codingClass.id,
+      classId: mainClass.id,
       teacherId: teacherPark.id,
-      title: "리스트 컴프리헨션 설명 에세이",
-      content: "반복문 대비 장점을 자신의 말로 설명해 보세요.",
+      title: "사회 이슈 논술 에세이",
+      content: "제시된 주제에 대해 자신의 입장을 논리적으로 서술해 보세요.",
       type: "ESSAY",
       dueDate: new Date("2026-04-22T14:59:00.000Z"),
       teacherNote: "AI 첨삭 허용",
@@ -478,9 +483,9 @@ async function main() {
 
   const submissionJieun = await prisma.submission.create({
     data: {
-      assignmentId: codingAssignment.id,
+      assignmentId: workbookAssignment.id,
       studentId: studentJieun.id,
-      content: "for문은 횟수가 정해진 반복에 좋고, while문은 조건 중심 반복에 적합합니다.",
+      content: "지문의 핵심 논지는 환경 보호의 경제적 가치이며, 근거로 세 가지 사례를 들고 있습니다.",
       aiUsed: true,
       aiUsageDetail: "예시 문장 다듬기 2회",
       submittedAt: new Date("2026-04-09T05:32:00.000Z"),
@@ -490,9 +495,9 @@ async function main() {
 
   await prisma.submission.create({
     data: {
-      assignmentId: codingAssignment.id,
+      assignmentId: workbookAssignment.id,
       studentId: studentWoojin.id,
-      content: "while문을 사용할 때 종료 조건을 더 조심해야 합니다.",
+      content: "주장과 근거의 연결이 약한 부분을 보완해야 합니다.",
       submittedAt: new Date("2026-04-09T00:15:00.000Z"),
       status: "SUBMITTED",
     },
@@ -502,7 +507,7 @@ async function main() {
     data: {
       assignmentId: essayAssignment.id,
       studentId: studentSoyoung.id,
-      content: "리스트 컴프리헨션은 코드를 짧게 줄이는 데 도움이 됩니다.",
+      content: "논술에서 서론의 역할은 독자의 관심을 끌고 주제를 제시하는 것입니다.",
       attachments: ["https://example.com/essay-image-1.png"],
       aiUsed: true,
       aiUsageDetail: "문장 교정 1회",
@@ -519,7 +524,7 @@ async function main() {
       },
       {
         submissionId: submissionJieun.id,
-        content: "예시 코드 보강",
+        content: "근거 사례 보강",
         charCount: 240,
       },
     ],
@@ -528,14 +533,14 @@ async function main() {
   await prisma.weekNote.createMany({
     data: [
       {
-        classId: codingClass.id,
-        scheduleId: scheduleCoding.id,
-        lessonId: lessonCoding.id,
-        date: lessonCoding.date,
-        content: "리스트 컴프리헨션 도입 전 반복문 복습을 10분 진행했습니다.",
-        studentReaction: "질문이 많아 실습 시간을 늘리는 편이 좋았습니다.",
-        curriculumStage: "2단계 · 반복문 응용",
-        curriculumLesson: "2-3 리스트 컴프리헨션",
+        classId: mainClass.id,
+        scheduleId: scheduleMain.id,
+        lessonId: lessonMain.id,
+        date: lessonMain.date,
+        content: "서술형 답안 작성 전 지문 구조 복습을 10분 진행했습니다.",
+        studentReaction: "질문이 많아 연습 시간을 늘리는 편이 좋았습니다.",
+        curriculumStage: "2단계 · 서술형 답안 작성",
+        curriculumLesson: "2-1 개요 작성법",
         autoAssign: true,
       },
       {
@@ -562,7 +567,7 @@ async function main() {
       },
       {
         studentId: studentJieun.id,
-        classId: codingClass.id,
+        classId: mainClass.id,
         amount: 290000,
         status: "PAID",
         month: "2026-04",
@@ -592,11 +597,11 @@ async function main() {
     data: [
       {
         teacherId: teacherPark.id,
-        classId: codingClass.id,
-        title: "중급 A반 질문 패턴 메모",
-        content: "리스트 컴프리헨션에서 조건식 위치를 자주 헷갈립니다.",
+        classId: mainClass.id,
+        title: "논술 중급반 질문 패턴 메모",
+        content: "서론에서 주제 제시와 배경 설명의 순서를 자주 헷갈립니다.",
         category: "STUDENT_NOTE",
-        targetName: "중급 A반",
+        targetName: "논술 중급반",
       },
       {
         teacherId: teacherPark.id,
@@ -670,9 +675,9 @@ async function main() {
 
   const copilotSession = await prisma.copilotSession.create({
     data: {
-      lessonId: lessonCoding.id,
+      lessonId: lessonMain.id,
       teacherId: teacherPark.id,
-      topic: "Python 반복문과 리스트 컴프리헨션",
+      topic: "비문학 독해와 서술형 답안 작성",
       status: "ACTIVE",
     },
   })
@@ -681,11 +686,11 @@ async function main() {
     data: [
       {
         sessionId: copilotSession.id,
-        question: "for문이랑 while문 중에 어떤 걸 써야 하나요?",
-        beginner: "for문은 횟수가 정해질 때, while문은 조건이 유지될 때 사용합니다.",
-        example: "for i in range(5): print(i)",
-        advanced: "종료 조건을 스스로 제어해야 할 때 while문이 더 적합합니다.",
-        summary: "for = 횟수 중심, while = 조건 중심",
+        question: "서론에서 주제를 바로 제시해야 하나요, 배경을 먼저 써야 하나요?",
+        beginner: "독자의 관심을 끌기 위해 배경이나 질문으로 시작하고, 이어서 주제를 제시하는 것이 자연스럽습니다.",
+        example: "예: '최근 환경 문제가 심각해지고 있다. 이 글에서는 환경 보호의 경제적 가치를 살펴보겠다.'",
+        advanced: "논술 유형에 따라 두괄식(주제 먼저)과 미괄식(결론 나중)을 구분해서 써 보세요.",
+        summary: "배경으로 관심을 끈 뒤 주제를 제시하는 것이 기본",
         usedCards: ["beginner", "example"],
       },
     ],
@@ -693,12 +698,12 @@ async function main() {
 
   await prisma.recordingSummary.create({
     data: {
-      lessonId: lessonCoding.id,
+      lessonId: lessonMain.id,
       audioUrl: "https://example.com/recordings/lesson-1.mp3",
-      transcript: "오늘은 for문과 while문 차이를 정리했습니다.",
-      summary: "학생 질문이 반복문 종료 조건에 집중되었습니다.",
-      questions: "range 포함 여부, 들여쓰기 규칙",
-      nextPoints: "리스트 컴프리헨션 예시 추가",
+      transcript: "오늘은 비문학 지문의 구조를 파악하고 서술형 답안 개요를 작성했습니다.",
+      summary: "학생 질문이 서론 작성 방법에 집중되었습니다.",
+      questions: "주제 제시 순서, 근거 배치 방법",
+      nextPoints: "본론 근거 제시 연습 추가",
       status: "COMPLETED",
       progress: 100,
     },
@@ -708,17 +713,17 @@ async function main() {
     data: [
       {
         studentId: studentMain.id,
-        classId: codingClass.id,
-        question: "리스트 컴프리헨션에서 if는 어디에 쓰나요?",
-        aiAnswer: "표현식 뒤에 조건식을 붙이면 됩니다.",
+        classId: mainClass.id,
+        question: "논술에서 반론을 어디에 넣어야 하나요?",
+        aiAnswer: "본론의 마지막 단락에서 반론을 제시하고 재반박하는 구조가 일반적입니다.",
         helpful: true,
         status: "AI_ANSWERED",
       },
       {
         studentId: studentJieun.id,
-        classId: codingClass.id,
-        question: "while문은 언제 멈추는지 헷갈려요.",
-        teacherAnswer: "조건이 false가 되는 지점을 직접 표시해 보세요.",
+        classId: mainClass.id,
+        question: "결론을 어떻게 마무리해야 할지 모르겠어요.",
+        teacherAnswer: "본론의 핵심 주장을 한 문장으로 요약하고, 전망이나 제안으로 마무리해 보세요.",
         status: "TEACHER_ANSWERED",
       },
     ],
@@ -727,12 +732,12 @@ async function main() {
   await prisma.botFAQ.createMany({
     data: [
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         question: "과제 제출은 어디서 하나요?",
         answer: "수강생 홈의 과제 페이지에서 바로 제출할 수 있습니다.",
       },
       {
-        classId: codingClass.id,
+        classId: mainClass.id,
         question: "AI 첨삭을 써도 되나요?",
         answer: "허용된 과제에서만 사용하고, 사용 여부를 체크해 주세요.",
       },
@@ -742,16 +747,16 @@ async function main() {
   await prisma.reviewSummary.create({
     data: {
       studentId: studentMain.id,
-      lessonId: lessonCoding.id,
-      summary: "for문과 while문의 차이, 리스트 컴프리헨션 도입을 3줄로 복습합니다.",
+      lessonId: lessonMain.id,
+      summary: "비문학 지문 구조 파악과 서술형 개요 작성의 핵심을 3줄로 복습합니다.",
       quiz: [
         {
-          question: "for문이 더 적합한 상황은?",
-          options: ["조건이 불명확한 반복", "횟수가 정해진 반복", "무한 반복"],
+          question: "서론에서 가장 먼저 해야 할 것은?",
+          options: ["반론 제시", "독자의 관심 유도", "결론 요약"],
           correctIndex: 1,
         },
       ],
-      preview: "다음 시간에는 조건식이 포함된 컴프리헨션을 다룹니다.",
+      preview: "다음 시간에는 본론에서 근거를 효과적으로 제시하는 방법을 다룹니다.",
     },
   })
 

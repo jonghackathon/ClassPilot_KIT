@@ -16,7 +16,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
     const body = (await request.json()) as {
       question?: string
       answer?: string
-      sortOrder?: number
     }
 
     const existing = await prisma.botFAQ.findUnique({
@@ -33,7 +32,6 @@ export async function PATCH(request: Request, { params }: { params: Params }) {
       data: {
         ...(body.question !== undefined ? { question: body.question.trim() } : {}),
         ...(body.answer !== undefined ? { answer: body.answer.trim() } : {}),
-        ...(body.sortOrder !== undefined ? { sortOrder: body.sortOrder } : {}),
       },
     })
 

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server'
+import { MemoCategory } from '@prisma/client'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
@@ -7,15 +8,18 @@ import { memoCreateSchema } from '@/lib/validations/memo'
 
 export async function GET(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { searchParams, page, limit, skip } = getPageParams(request)
   const classId = searchParams.get('classId') ?? undefined
   const archived = searchParams.get('archived')
-  const category = searchParams.get('category') ?? undefined
+  const categoryParam = searchParams.get('category') ?? undefined
+  const category = categoryParam && categoryParam in MemoCategory
+    ? (categoryParam as MemoCategory)
+    : undefined
 
   const where = {
-    teacher: { academyId: session.user.academyId },
+    teacher: { is: { academyId: session.user.academyId } },
     ...(session.user.role === 'TEACHER' ? { teacherId: session.user.id } : {}),
     ...(classId ? { classId } : {}),
     ...(category ? { category } : {}),
@@ -47,7 +51,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const body = await request.json().catch(() => null)
   if (!body) {

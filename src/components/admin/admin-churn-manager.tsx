@@ -303,6 +303,7 @@ export function AdminChurnManagerPage() {
   const [actionForm, setActionForm] = useState<ActionFormState>(emptyActionForm)
   const [isSavingContact, setIsSavingContact] = useState(false)
   const [isSavingAction, setIsSavingAction] = useState(false)
+  const [isRefreshingBatch, setIsRefreshingBatch] = useState(false)
   const [feedback, setFeedback] = useState<{
     tone: Tone
     title: string
@@ -525,12 +526,71 @@ export function AdminChurnManagerPage() {
     }
   }
 
+  async function handleRefreshPredictions() {
+    setIsRefreshingBatch(true)
+    setFeedback(null)
+
+    try {
+      const response = await apiRequest<
+        ApiEnvelope<{
+          calculatedAt: string
+          count: number
+          dangerStudents: Array<{
+            id: string
+            name: string
+            score: number
+          }>
+        }>
+      >('/api/churn/batch', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+
+      await mutateChurn()
+      const names = response.data.dangerStudents.slice(0, 3).map((item) => item.name).join(', ')
+      setFeedback({
+        tone: 'emerald',
+        title: '이탈 예측을 다시 계산했습니다.',
+        description: response.data.dangerStudents.length
+          ? `고위험 학생 ${response.data.dangerStudents.length}명을 다시 계산했습니다. ${names}${response.data.dangerStudents.length > 3 ? ' 외' : ''}`
+          : '현재 기준으로 새 고위험 학생은 없습니다.',
+      })
+    } catch (caught) {
+      setFeedback({
+        tone: 'rose',
+        title: '이탈 예측 갱신에 실패했습니다.',
+        description:
+          caught instanceof Error ? caught.message : '잠시 후 다시 시도해주세요.',
+      })
+    } finally {
+      setIsRefreshingBatch(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHero
         eyebrow="이탈 예측"
         title="위험 학생을 파악하고 바로 연락과 후속 조치를 남겨요"
         description="이탈 예측 점수만 보는 화면이 아니라, 실제 상담 기록과 위험도 조정을 한 화면에서 이어서 처리할 수 있게 연결했습니다."
+        action={
+          <button
+            className={cx(
+              primaryButton,
+              'bg-gradient-to-r from-violet-600 to-indigo-500 shadow-violet-500/20',
+            )}
+            disabled={isRefreshingBatch}
+            onClick={() => void handleRefreshPredictions()}
+            type="button"
+          >
+            {isRefreshingBatch ? (
+              <LoaderCircle className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {isRefreshingBatch ? '계산 중...' : '이탈 예측 갱신'}
+          </button>
+        }
       />
 
       {feedback ? (
@@ -788,6 +848,13 @@ export function AdminChurnManagerPage() {
             <SectionHeading
               title="운영 우선순위"
               subtitle="가장 먼저 대응할 학생을 기준으로 후속 조치를 이어갑니다."
+              action={
+                predictions[0]?.calculatedAt ? (
+                  <span className="text-sm text-slate-500">
+                    마지막 계산 {formatDate(predictions[0].calculatedAt)}
+                  </span>
+                ) : null
+              }
             />
 
             {selectedPrediction ? (
@@ -844,6 +911,22 @@ export function AdminChurnManagerPage() {
                     type="button"
                   >
                     이탈 처리 열기
+                  </button>
+                  <button
+                    className={cx(
+                      secondaryButton,
+                      'w-full border-violet-200 text-violet-700 hover:border-violet-300',
+                    )}
+                    disabled={isRefreshingBatch}
+                    onClick={() => void handleRefreshPredictions()}
+                    type="button"
+                  >
+                    {isRefreshingBatch ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {isRefreshingBatch ? '계산 중...' : 'AI 예측 다시 계산'}
                   </button>
                   <Link
                     className={cx(secondaryButton, 'w-full justify-between')}

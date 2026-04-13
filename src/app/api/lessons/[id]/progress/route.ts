@@ -23,7 +23,7 @@ type RouteContext = {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
-  if (error || !session) return error
+  if (error) return error
 
   const { id } = await Promise.resolve(context.params)
   const lesson = await prisma.lesson.findUnique({

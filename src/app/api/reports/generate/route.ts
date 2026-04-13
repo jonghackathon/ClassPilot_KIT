@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server'
 import { z } from 'zod'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
+import { getClaudeClient, getClaudeModel } from '@/lib/ai/claude'
+import { extractClaudeText } from '@/lib/ai/extract-text'
+import { buildMonthlyReportPrompt } from '@/lib/ai/prompts'
 import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
 import { withAuth } from '@/lib/with-auth'
@@ -21,7 +24,7 @@ function makeMonthRange(monthStr: string) {
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
 
-  if (error || !session) {
+  if (error) {
     return error
   }
 
@@ -96,13 +99,45 @@ export async function POST(request: NextRequest) {
 
   const attendanceSummary = `출결 ${attendances.length}회 / 지각 ${attendances.filter((item) => item.status === 'LATE').length}회 / 결석 ${attendances.filter((item) => item.status === 'ABSENT').length}회`
   const assignmentSummary = `제출 ${submissions.length}건 / 피드백 완료 ${submissions.filter((item) => Boolean(item.teacherFeedback)).length}건`
-  const growth = weekNotes.length
+  const fallbackGrowth = weekNotes.length
     ? weekNotes
         .map((item) => item.studentReaction || item.content)
         .filter(Boolean)
         .slice(0, 3)
         .join(' / ')
     : '이번 달 수업 기록을 기반으로 다음 목표를 함께 조정해 주세요.'
+  let growth = fallbackGrowth
+  let comment = `${student.name} 수강생 월간 리포트 초안`
+
+  try {
+    const client = getClaudeClient()
+    const response = await client.messages.create({
+      model: getClaudeModel(),
+      max_tokens: 900,
+      temperature: 0.35,
+      stream: false,
+      system: '학부모가 읽는 월간 학습 리포트를 한국어로 간결하고 따뜻하게 작성합니다.',
+      messages: [
+        {
+          role: 'user',
+          content: buildMonthlyReportPrompt({
+            studentName: student.name,
+            monthStr: parsed.data.monthStr,
+            attendanceSummary,
+            assignmentSummary,
+            growth: fallbackGrowth,
+          }),
+        },
+      ],
+    })
+    const aiText = extractClaudeText(response)
+    if (aiText) {
+      growth = aiText
+      comment = `${student.name} 수강생 ${parsed.data.monthStr} AI 월간 리포트`
+    }
+  } catch {
+    // 외부 AI 호출 실패 시에도 월간 보고서 초안은 기본 요약으로 유지한다.
+  }
 
   const report = await prisma.reportData.upsert({
     where: {
@@ -114,13 +149,13 @@ export async function POST(request: NextRequest) {
     create: {
       studentId: parsed.data.studentId,
       monthStr: parsed.data.monthStr,
-      comment: `${student.name} 수강생 월간 리포트 초안`,
+      comment,
       growth,
       attendanceSummary,
       assignmentSummary,
     },
     update: {
-      comment: `${student.name} 수강생 월간 리포트 초안`,
+      comment,
       growth,
       attendanceSummary,
       assignmentSummary,

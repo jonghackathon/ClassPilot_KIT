@@ -12,14 +12,14 @@ import { formatKoreanDate, type ApiEnvelope, type PaginatedData, unwrapItems } f
 type AssignmentItem = {
   id: string
   title: string
-  type: 'CODING' | 'ESSAY' | 'IMAGE'
+  type: 'WORKBOOK' | 'ESSAY' | 'IMAGE'
   dueDate: string | null
   class: { id: string; name: string }
   teacher: { id: string; name: string }
 }
 
 const typeLabels: Record<AssignmentItem['type'], string> = {
-  CODING: '코딩',
+  WORKBOOK: '문제풀이',
   ESSAY: '서술',
   IMAGE: '이미지',
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { signOut, useSession } from 'next-auth/react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import {
   AlertTriangle,
   Bell,
@@ -22,6 +22,8 @@ import {
   X,
 } from 'lucide-react'
 
+import { NotificationPopover } from '@/components/notifications/NotificationPopover'
+
 const navigation = [
   { href: '/admin/dashboard', label: '대시보드', icon: LayoutGrid },
   { href: '/admin/students', label: '학생 관리', icon: Users },
@@ -34,12 +36,6 @@ const navigation = [
   { href: '/admin/complaints', label: '민원 관리', icon: MessageSquareWarning },
 ]
 
-const notifications = [
-  { title: '미납 확인 필요', detail: '김민수 학부모님 4월 수강료가 아직 미납 상태입니다.' },
-  { title: '민원 응답 대기', detail: '수업 시간 변경 요청 1건이 응답 대기 중입니다.' },
-  { title: '위험 학생 상승', detail: '이서연 학생의 이탈 위험도가 이번 주에 상승했습니다.' },
-]
-
 export default function AdminLayout({
   children,
 }: {
@@ -50,6 +46,9 @@ export default function AdminLayout({
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [alarmOpen, setAlarmOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [mobileNavPath, setMobileNavPath] = useState<string | null>(null)
+  const [alarmPath, setAlarmPath] = useState<string | null>(null)
+  const [profilePath, setProfilePath] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
 
   const displayName = session?.user?.name ?? '운영 관리자'
@@ -65,18 +64,16 @@ export default function AdminLayout({
     [],
   )
 
-  useEffect(() => {
-    setMobileNavOpen(false)
-    setAlarmOpen(false)
-    setProfileOpen(false)
-  }, [pathname])
+  const isMobileNavVisible = mobileNavOpen && mobileNavPath === pathname
+  const isAlarmVisible = alarmOpen && alarmPath === pathname
+  const isProfileVisible = profileOpen && profilePath === pathname
 
   async function handleLogout() {
     await signOut({ callbackUrl: '/login' })
   }
 
   return (
-    <div className="min-h-screen bg-transparent">
+    <div className="min-h-dvh bg-transparent">
       <div className="mx-auto flex min-h-screen max-w-[1480px] gap-6 px-4 py-4 lg:px-6">
         <aside className="glass-panel sticky top-4 hidden h-[calc(100vh-2rem)] w-[280px] shrink-0 rounded-[30px] border border-white/55 p-5 lg:flex lg:flex-col">
           <div className="rounded-[28px] bg-slate-950 px-5 py-6 text-white">
@@ -126,10 +123,17 @@ export default function AdminLayout({
               <div className="flex items-center gap-3 lg:hidden">
                 <button
                   className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white/85 text-slate-700 transition hover:border-indigo-200 hover:text-indigo-600"
-                  onClick={() => setMobileNavOpen(true)}
+                  onClick={() => {
+                    setMobileNavOpen(true)
+                    setMobileNavPath(pathname)
+                  }}
                   type="button"
                 >
                   <Menu className="h-5 w-5" />
+                  {/*
+                    Route changes naturally hide the overlay because visibility is
+                    derived from the pathname captured at open time.
+                  */}
                 </button>
                 <div className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-white/80 px-4 py-3">
                   <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Operations</p>
@@ -153,6 +157,7 @@ export default function AdminLayout({
                     className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white/80 text-slate-600 transition hover:border-indigo-200 hover:text-indigo-600"
                     onClick={() => {
                       setAlarmOpen((current) => !current)
+                      setAlarmPath(pathname)
                       setProfileOpen(false)
                     }}
                     type="button"
@@ -164,6 +169,7 @@ export default function AdminLayout({
                     className="rounded-2xl border border-slate-200 bg-white/85 px-4 py-3 text-left transition hover:border-indigo-200"
                     onClick={() => {
                       setProfileOpen((current) => !current)
+                      setProfilePath(pathname)
                       setAlarmOpen(false)
                     }}
                     type="button"
@@ -174,26 +180,14 @@ export default function AdminLayout({
                     <p className="mt-1 text-sm font-semibold text-slate-800">{displayName}</p>
                   </button>
 
-                  {alarmOpen ? (
-                    <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-sm font-semibold text-slate-900">알림 센터</p>
-                        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-                          3건
-                        </span>
-                      </div>
-                      <div className="mt-4 space-y-3">
-                        {notifications.map((item) => (
-                          <div key={item.title} className="rounded-2xl bg-slate-50 px-4 py-4">
-                            <p className="font-semibold text-slate-900">{item.title}</p>
-                            <p className="mt-2 text-sm leading-6 text-slate-600">{item.detail}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
+                  {isAlarmVisible ? (
+                    <NotificationPopover
+                      className="absolute right-0 top-[calc(100%+12px)] z-30 w-[320px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10"
+                      title="알림 센터"
+                    />
                   ) : null}
 
-                  {profileOpen ? (
+                  {isProfileVisible ? (
                     <div className="absolute right-0 top-[calc(100%+12px)] z-30 w-[260px] rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10">
                       <div className="rounded-[24px] bg-slate-950 px-4 py-4 text-white">
                         <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Workspace</p>
@@ -229,24 +223,31 @@ export default function AdminLayout({
         </div>
       </div>
 
-      {mobileNavOpen ? (
-        <div className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden">
-          <div className="absolute left-4 right-4 top-4 rounded-[32px] border border-white/55 bg-white p-5 shadow-2xl shadow-slate-900/15">
+      {isMobileNavVisible ? (
+        <div
+          className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-sm lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+        >
+          <div
+            className="absolute inset-x-4 top-4 max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-[32px] border border-white/55 bg-white p-5 shadow-2xl shadow-slate-900/15"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-400">AcadeMind Admin</p>
                 <p className="mt-2 text-lg font-semibold text-slate-950">운영자 빠른 이동</p>
               </div>
               <button
-                className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-700"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-700"
                 onClick={() => setMobileNavOpen(false)}
                 type="button"
+                aria-label="메뉴 닫기"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <nav className="mt-5 grid gap-2 sm:grid-cols-2">
+            <nav className="mt-5 grid grid-cols-2 gap-2">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
@@ -255,14 +256,15 @@ export default function AdminLayout({
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setMobileNavOpen(false)}
                     className={`flex items-center gap-3 rounded-2xl px-4 py-4 text-sm font-medium transition ${
                       isActive
                         ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
-                        : 'bg-slate-50 text-slate-700'
+                        : 'bg-slate-50 text-slate-700 active:bg-slate-100'
                     }`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
                   </Link>
                 )
               })}

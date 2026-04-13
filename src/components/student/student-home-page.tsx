@@ -31,7 +31,7 @@ type StudentMe = {
 type AssignmentItem = {
   id: string
   title: string
-  type: 'CODING' | 'ESSAY' | 'IMAGE'
+  type: 'WORKBOOK' | 'ESSAY' | 'IMAGE'
   dueDate: string | null
   class: { id: string; name: string }
   teacher: { id: string; name: string }

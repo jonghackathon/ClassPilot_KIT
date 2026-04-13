@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import NextAuth from 'next-auth'
 
-import { auth } from '@/lib/auth'
+import { authConfig } from '@/lib/auth.config'
+
+const { auth } = NextAuth(authConfig)
 
 export default auth((request) => {
   const pathname = request.nextUrl.pathname
