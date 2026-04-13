@@ -17,8 +17,12 @@ function generateAcademyCode(): string {
 export async function POST(request: Request) {
   const { data, error } = await parseRequestBody(request, registerSchema)
 
-  if (error || !data) {
+  if (error) {
     return error
+  }
+
+  if (!data) {
+    return errorResponse('VALIDATION', '입력값이 올바르지 않습니다.', 400)
   }
 
   const exists = await prisma.user.findUnique({
