@@ -90,6 +90,7 @@ function SubmissionConfirmDialog({
           </div>
           <button
             className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600"
+            aria-label="닫기"
             onClick={onClose}
             type="button"
           >

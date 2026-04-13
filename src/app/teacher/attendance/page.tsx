@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { TeacherAttendancePage } from '@/components/frontend/teacher-pages'
+import { TeacherAttendanceManager } from '@/components/attendance/teacher-attendance-manager'
 
 export const metadata: Metadata = {
   title: '출결 관리',
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 }
 
 export default function Page() {
-  return <TeacherAttendancePage />
+  return <TeacherAttendanceManager />
 }

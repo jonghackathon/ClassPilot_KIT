@@ -10,6 +10,7 @@ import {
   CalendarCheck2,
   GraduationCap,
   Home,
+  MessageCircleQuestion,
   NotebookPen,
 } from 'lucide-react'
 
@@ -20,6 +21,7 @@ const navigation = [
   { href: '/student/attendance', label: '출결', icon: CalendarCheck2 },
   { href: '/student/assignments', label: '과제', icon: NotebookPen },
   { href: '/student/review', label: '복습', icon: BookOpen },
+  { href: '/student/qna', label: 'Q&A', icon: MessageCircleQuestion },
 ]
 
 export default function StudentLayout({
@@ -47,12 +49,9 @@ export default function StudentLayout({
   const isAlarmVisible = alarmOpen && alarmPath === pathname
 
   return (
-    <div
-      className="min-h-dvh bg-transparent"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6.5rem)' }}
-    >
+    <div className="min-h-dvh bg-transparent" style={{ paddingBottom: '6.5rem' }}>
       <div className="mx-auto max-w-[680px] px-4 pt-4">
-        <header className="glass-panel rounded-[30px] border border-white/55 px-5 py-5">
+        <header className="glass-panel sticky top-0 z-20 rounded-[30px] border border-white/55 px-5 py-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.24em] text-slate-400">AcadeMind</p>
@@ -76,6 +75,7 @@ export default function StudentLayout({
               </div>
               <button
                 className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-sky-200 hover:text-sky-600"
+                aria-label="알림 열기"
                 onClick={() => {
                   setAlarmOpen((current) => !current)
                   setAlarmPath(pathname)
@@ -87,10 +87,15 @@ export default function StudentLayout({
               </button>
 
               {isAlarmVisible ? (
-                <NotificationPopover
-                  className="absolute right-0 top-[calc(100%+12px)] z-30 w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10 sm:w-[320px]"
-                  title="알림"
-                />
+                <div
+                  className="absolute right-0 top-[calc(100%+12px)] z-30"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <NotificationPopover
+                    className="w-full rounded-[28px] border border-slate-200 bg-white p-4 shadow-2xl shadow-slate-900/10 sm:w-[320px]"
+                    title="알림"
+                  />
+                </div>
               ) : null}
             </div>
           </div>
@@ -99,11 +104,21 @@ export default function StudentLayout({
         <main className="mx-auto max-w-[640px] px-1 pb-4 pt-6">{children}</main>
       </div>
 
+          {isAlarmVisible ? (
+            <div
+              className="fixed inset-0 z-20"
+              onClick={() => {
+                setAlarmOpen(false)
+                setAlarmPath(null)
+              }}
+            />
+          ) : null}
+
       <nav
         className="fixed inset-x-0 bottom-0 z-30 mx-auto max-w-[720px] px-4"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
       >
-        <div className="glass-panel mx-auto grid grid-cols-4 rounded-[28px] border border-white/65 p-2 shadow-2xl">
+        <div className="glass-panel mx-auto grid grid-cols-5 rounded-[28px] border border-white/65 p-2 shadow-2xl">
           {navigation.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`)
