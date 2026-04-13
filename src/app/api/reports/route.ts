@@ -49,16 +49,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
   if (error || !session) return error
+  const teacherStudentIds =
+    session.user.role === 'TEACHER' ? await getTeacherStudentIds(session.user.id) : []
 
   const body = await request.json().catch(() => null)
   if (!body) {
     return errorResponse('VALIDATION', '요청 본문이 올바르지 않습니다.', 400)
   }
 
-  const parsed = reportCreateSchema.safeParse({
-    ...body,
-    studentId: body.studentId ?? session.user.id,
-  })
+  const parsed = reportCreateSchema.safeParse(body)
   if (!parsed.success) {
     return errorResponse('VALIDATION', '보고서 데이터가 올바르지 않습니다.', 400, parsed.error.flatten())
   }
