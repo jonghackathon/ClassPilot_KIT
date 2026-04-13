@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, GraduationCap, ShieldCheck } from 'lucide-react'
+import { ArrowRight, BookOpen, GraduationCap, ShieldCheck } from 'lucide-react'
 
 export default function LoginPage() {
   return (
@@ -53,6 +53,28 @@ export default function LoginPage() {
           <ArrowRight className="h-4 w-4" />
         </div>
       </Link>
+
+      {/* 데모 계정 안내 */}
+      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-5 py-4">
+        <div className="flex items-center gap-2 mb-3">
+          <BookOpen className="h-4 w-4 text-indigo-600" />
+          <span className="text-sm font-semibold text-indigo-700">데모 계정 안내</span>
+        </div>
+        <div className="space-y-1.5 text-xs text-slate-600">
+          <div className="flex justify-between">
+            <span className="text-slate-500">원장 (ADMIN)</span>
+            <span className="font-mono">admin@academind.kr / 1234</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">강사 (TEACHER)</span>
+            <span className="font-mono">teacher@academind.kr / 1234</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-500">수강생 (STUDENT)</span>
+            <span className="font-mono">학원코드 DEMO-1234 · 민수 · 1234</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
