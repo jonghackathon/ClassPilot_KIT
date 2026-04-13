@@ -1,5 +1,3 @@
-import type { Prisma } from '@prisma/client'
-
 import { errorResponse, paginatedResponse } from '@/lib/api-response'
 import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
@@ -41,7 +39,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const studentWhere: Prisma.UserWhereInput = {
+  const studentWhere = {
     academyId: session.user.academyId,
     ...(keyword
       ? {
@@ -64,7 +62,7 @@ export async function GET(request: Request) {
     return paginatedResponse([], 0, page, limit)
   }
 
-  const studentIds = students.map((item) => item.id)
+  const studentIds = students.map((item: { id: string }) => item.id)
 
   const predictions = await prisma.churnPrediction.findMany({
     where: {

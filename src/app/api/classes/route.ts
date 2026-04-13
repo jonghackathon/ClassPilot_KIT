@@ -1,5 +1,3 @@
-import type { Prisma } from '@prisma/client'
-
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
 import { parseRequestBody, searchContains } from '@/lib/route-helpers'
@@ -21,7 +19,7 @@ export async function GET(request: Request) {
   const teacherId = searchParams.get('teacherId')
   const studentId = searchParams.get('studentId')
 
-  const baseWhere: Prisma.ClassWhereInput = {
+  const baseWhere = {
     academyId: session.user.academyId,
     ...(subject ? { subject } : {}),
     ...(level ? { level } : {}),
