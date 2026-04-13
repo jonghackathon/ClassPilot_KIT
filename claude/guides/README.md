@@ -13,6 +13,7 @@ ClassPilot 개발에서 실제 사용한 AI 도구 및 워크플로우 레퍼런
 | `git-worktree/` | 병렬 Git Worktree 전략 (Step 4·5 실제 운영 기록) |
 | `orchestra/` | 멀티 에이전트 조율 패턴 (Codex + Claude 역할 분담) |
 | `design-workflow/` | AI 디자인 워크플로우 (요구사항 → Figma MCP → 코드) |
+| `token-optimization/` | 토큰 최적화, 유지보수성 및 재현성 전략 |
 
 ---
 
@@ -85,3 +86,9 @@ claude -p "질문"          # 비대화형 모드
 | 파일 | 내용 |
 |---|---|
 | `01_AI_디자인_워크플로우.md` | 요구사항 → 화면설계서 → Stitch → Figma MCP → 코드 전체 흐름 |
+
+### token-optimization/
+
+| 파일 | 내용 |
+|---|---|
+| `01_토큰_최적화_전략.md` | 컨텍스트 피라미드, /compact, 프롬프트 중앙관리, Fallback, SWR 캐싱, done/ 아카이브 |
