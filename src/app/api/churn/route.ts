@@ -1,3 +1,5 @@
+import type { Prisma } from '@prisma/client'
+
 import { errorResponse, paginatedResponse } from '@/lib/api-response'
 import { getTeacherStudentIds } from '@/lib/access-scope'
 import { prisma } from '@/lib/db'
@@ -39,7 +41,7 @@ export async function GET(request: Request) {
     }
   }
 
-  const studentWhere = {
+  const studentWhere: Prisma.UserWhereInput = {
     academyId: session.user.academyId,
     ...(keyword
       ? {

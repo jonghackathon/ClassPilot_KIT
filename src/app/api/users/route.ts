@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs'
+import type { Prisma } from '@prisma/client'
 
 import { errorResponse, paginatedResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
@@ -25,7 +26,7 @@ export async function GET(request: Request) {
   const active = searchParams.get('active')
   const keyword = searchParams.get('q')
 
-  const adminWhere = {
+  const adminWhere: Prisma.UserWhereInput = {
     academyId: session.user.academyId,
     ...(role ? { role: role as 'ADMIN' | 'TEACHER' | 'STUDENT' } : {}),
     ...(classId ? { enrollments: { some: { classId } } } : {}),
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
       : {}),
   }
 
-  const teacherWhere = {
+  const teacherWhere: Prisma.UserWhereInput = {
     academyId: session.user.academyId,
     role: 'STUDENT' as const,
     ...(classId
