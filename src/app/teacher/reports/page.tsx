@@ -1,5 +1,5 @@
-import { ReportsPage } from '@/components/frontend/reports-page'
+import { TeacherReportsPage } from '@/components/teacher/reports/teacher-reports-page'
 
 export default function Page() {
-  return <ReportsPage />
+  return <TeacherReportsPage />
 }
