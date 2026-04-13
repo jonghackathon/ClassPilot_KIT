@@ -1,6 +1,6 @@
 import { prisma } from './db'
 
-export async function getTeacherClassIds(teacherId: string) {
+export async function getTeacherClassIds(teacherId: string): Promise<string[]> {
   const items = await prisma.classTeacher.findMany({
     where: { teacherId },
     select: { classId: true },
@@ -21,7 +21,7 @@ export async function teacherHasClassAccess(teacherId: string, classId: string) 
   return Boolean(item)
 }
 
-export async function getTeacherStudentIds(teacherId: string) {
+export async function getTeacherStudentIds(teacherId: string): Promise<string[]> {
   const classIds = await getTeacherClassIds(teacherId)
 
   if (classIds.length === 0) {
@@ -36,5 +36,5 @@ export async function getTeacherStudentIds(teacherId: string) {
     select: { studentId: true },
   })
 
-  return [...new Set(enrollments.map((item) => item.studentId))]
+  return Array.from(new Set(enrollments.map((item) => item.studentId)))
 }

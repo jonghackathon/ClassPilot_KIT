@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     },
   })
 
-  const students = enrollments.map(({ student }) => ({
+  const students = enrollments.map(({ student }: { student: { id: string; name: string } }) => ({
     id: student.id,
     maskedName: maskName(student.name),
   }))

@@ -1,5 +1,4 @@
 import { NextRequest } from 'next/server'
-import { MemoCategory } from '@prisma/client'
 
 import { errorResponse, successResponse } from '@/lib/api-response'
 import { prisma } from '@/lib/db'
@@ -13,9 +12,10 @@ export async function GET(request: NextRequest) {
   const { searchParams, page, limit, skip } = getPageParams(request)
   const classId = searchParams.get('classId') ?? undefined
   const archived = searchParams.get('archived')
+  const MEMO_CATEGORIES = new Set(['NOTICE', 'NOTABLE', 'STUDENT_NOTE', 'OTHER'])
   const categoryParam = searchParams.get('category') ?? undefined
-  const category = categoryParam && categoryParam in MemoCategory
-    ? (categoryParam as MemoCategory)
+  const category = categoryParam && MEMO_CATEGORIES.has(categoryParam)
+    ? (categoryParam as 'NOTICE' | 'NOTABLE' | 'STUDENT_NOTE' | 'OTHER')
     : undefined
 
   const where = {
