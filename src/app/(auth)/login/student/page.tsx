@@ -1,26 +1,41 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
+import { signIn } from 'next-auth/react'
 import { ArrowLeft, ArrowRight, GraduationCap, LoaderCircle } from 'lucide-react'
 
 type Step = 1 | 2 | 3
 
-const STEPS = [
-  { label: '학원 코드' },
-  { label: '이름 선택' },
-  { label: 'PIN 입력' },
-]
+interface AcademyInfo {
+  id: string
+  name: string
+}
+
+interface ClassInfo {
+  id: string
+  name: string
+}
+
+interface StudentInfo {
+  id: string
+  maskedName: string
+}
+
+const STEPS = ['학원 코드', '이름 선택', 'PIN 입력']
+
+const PIN_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']
 
 function StepIndicator({ current }: { current: Step }) {
   return (
     <div className="flex items-center gap-2">
-      {STEPS.map((step, index) => {
+      {STEPS.map((label, index) => {
         const stepNum = (index + 1) as Step
         const isDone = stepNum < current
         const isActive = stepNum === current
         return (
-          <div key={step.label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-2">
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold transition ${
                 isDone
@@ -32,16 +47,10 @@ function StepIndicator({ current }: { current: Step }) {
             >
               {isDone ? '✓' : stepNum}
             </div>
-            <span
-              className={`text-xs font-medium transition ${
-                isActive ? 'text-slate-900' : 'text-slate-400'
-              }`}
-            >
-              {step.label}
+            <span className={`text-xs font-medium ${isActive ? 'text-slate-900' : 'text-slate-400'}`}>
+              {label}
             </span>
-            {index < STEPS.length - 1 ? (
-              <div className="mx-1 h-px w-6 bg-slate-200" />
-            ) : null}
+            {index < STEPS.length - 1 && <div className="mx-1 h-px w-6 bg-slate-200" />}
           </div>
         )
       })}
@@ -49,22 +58,10 @@ function StepIndicator({ current }: { current: Step }) {
   )
 }
 
-// PIN 숫자 키패드
-const PIN_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫']
-
-function PinKeypad({
-  pin,
-  onChange,
-}: {
-  pin: string
-  onChange: (next: string) => void
-}) {
+function PinKeypad({ pin, onChange }: { pin: string; onChange: (v: string) => void }) {
   function handleKey(key: string) {
-    if (key === '⌫') {
-      onChange(pin.slice(0, -1))
-    } else if (key !== '' && pin.length < 4) {
-      onChange(pin + key)
-    }
+    if (key === '⌫') onChange(pin.slice(0, -1))
+    else if (pin.length < 4) onChange(pin + key)
   }
 
   return (
@@ -73,7 +70,7 @@ function PinKeypad({
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
-            className={`flex h-14 w-14 items-center justify-center rounded-2xl border-2 text-2xl font-bold transition ${
+            className={`flex h-14 w-14 items-center justify-center rounded-2xl border-2 text-2xl transition ${
               pin.length > i
                 ? 'border-sky-500 bg-sky-50 text-sky-700'
                 : 'border-slate-200 bg-white text-transparent'
@@ -83,11 +80,10 @@ function PinKeypad({
           </div>
         ))}
       </div>
-
       <div className="grid grid-cols-3 gap-2">
-        {PIN_KEYS.map((key, index) => (
+        {PIN_KEYS.map((key, i) => (
           <button
-            key={index}
+            key={i}
             type="button"
             disabled={key === ''}
             onClick={() => handleKey(key)}
@@ -96,7 +92,7 @@ function PinKeypad({
                 ? 'invisible'
                 : key === '⌫'
                   ? 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
-                  : 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 hover:ring-slate-300 active:bg-slate-100'
+                  : 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50 active:bg-slate-100'
             }`}
           >
             {key}
@@ -108,13 +104,26 @@ function PinKeypad({
 }
 
 export default function StudentLoginPage() {
+  const router = useRouter()
   const [step, setStep] = useState<Step>(1)
+
+  // Step 1
   const [academyCode, setAcademyCode] = useState('')
-  const [academyName, setAcademyName] = useState('')
+  const [academyInfo, setAcademyInfo] = useState<AcademyInfo | null>(null)
   const [codeError, setCodeError] = useState('')
   const [isCheckingCode, setIsCheckingCode] = useState(false)
-  const [selectedStudent, setSelectedStudent] = useState<{ id: string; name: string } | null>(null)
+
+  // Step 2
+  const [classes, setClasses] = useState<ClassInfo[]>([])
+  const [selectedClass, setSelectedClass] = useState<ClassInfo | null>(null)
+  const [students, setStudents] = useState<StudentInfo[]>([])
+  const [selectedStudent, setSelectedStudent] = useState<StudentInfo | null>(null)
+  const [isFetchingStudents, startFetchStudents] = useTransition()
+
+  // Step 3
   const [pin, setPin] = useState('')
+  const [pinError, setPinError] = useState('')
+  const [isLoggingIn, startLogin] = useTransition()
 
   async function handleCodeSubmit() {
     setCodeError('')
@@ -127,13 +136,18 @@ export default function StudentLoginPage() {
     setIsCheckingCode(true)
     try {
       const res = await fetch(`/api/auth/academy?code=${encodeURIComponent(trimmed)}`)
+      const json = await res.json()
       if (!res.ok) {
-        setCodeError('학원 코드를 찾을 수 없어요. 다시 확인해 주세요.')
+        setCodeError(json.error?.message ?? '학원 코드를 찾을 수 없어요.')
         return
       }
-      const data = await res.json()
-      setAcademyName(data.name)
+      setAcademyInfo(json.data)
       setAcademyCode(trimmed)
+
+      // 반 목록 미리 로딩
+      const classRes = await fetch(`/api/auth/students?academyCode=${encodeURIComponent(trimmed)}`)
+      const classJson = await classRes.json()
+      if (classRes.ok) setClasses(classJson.data.classes ?? [])
       setStep(2)
     } catch {
       setCodeError('연결에 문제가 생겼어요. 잠시 후 다시 시도해 주세요.')
@@ -142,7 +156,19 @@ export default function StudentLoginPage() {
     }
   }
 
-  function handleStudentSelect(student: { id: string; name: string }) {
+  function handleClassSelect(cls: ClassInfo) {
+    setSelectedClass(cls)
+    setSelectedStudent(null)
+    startFetchStudents(async () => {
+      const res = await fetch(
+        `/api/auth/students?academyCode=${encodeURIComponent(academyCode)}&classId=${encodeURIComponent(cls.id)}`,
+      )
+      const json = await res.json()
+      if (res.ok) setStudents(json.data.students ?? [])
+    })
+  }
+
+  function handleStudentSelect(student: StudentInfo) {
     setSelectedStudent(student)
     setStep(3)
   }
@@ -150,16 +176,39 @@ export default function StudentLoginPage() {
   function handleBack() {
     if (step === 2) {
       setStep(1)
-      setAcademyName('')
+      setAcademyInfo(null)
+      setClasses([])
+      setSelectedClass(null)
     } else if (step === 3) {
       setStep(2)
       setPin('')
+      setPinError('')
     }
+  }
+
+  function handleLogin() {
+    if (pin.length < 4 || !selectedStudent || !academyCode) return
+    setPinError('')
+    startLogin(async () => {
+      const result = await signIn('credentials', {
+        type: 'student',
+        academyCode,
+        studentId: selectedStudent.id,
+        pin,
+        redirect: false,
+      })
+      if (result?.error) {
+        setPinError('PIN이 올바르지 않아요. 다시 확인해 주세요.')
+        setPin('')
+        return
+      }
+      router.push('/student/home')
+    })
   }
 
   return (
     <div className="glass-panel w-full max-w-[440px] rounded-[32px] border border-white/45 p-6 text-slate-900 shadow-2xl sm:p-8">
-      <div className="mb-2 flex items-center gap-3">
+      <div className="mb-2">
         {step === 1 ? (
           <Link
             href="/login"
@@ -190,30 +239,32 @@ export default function StudentLoginPage() {
           {step === 2 && '이름을 선택해 주세요'}
           {step === 3 && 'PIN 입력'}
         </h2>
-        {step === 2 && academyName ? (
+        {step === 2 && academyInfo && (
           <p className="mt-1 text-sm text-slate-500">
-            <span className="font-semibold text-slate-800">{academyName}</span> 학생 목록이에요.
+            <span className="font-semibold text-slate-800">{academyInfo.name}</span>
+            {selectedClass ? ` · ${selectedClass.name}` : ''}
           </p>
-        ) : null}
-        {step === 3 && selectedStudent ? (
+        )}
+        {step === 3 && selectedStudent && (
           <p className="mt-1 text-sm text-slate-500">
-            <span className="font-semibold text-slate-800">{selectedStudent.name}</span>님의 PIN을 입력해 주세요.
+            <span className="font-semibold text-slate-800">{selectedStudent.maskedName}</span>님의 PIN을 입력해 주세요.
           </p>
-        ) : null}
+        )}
       </div>
 
       <div className="mb-6">
         <StepIndicator current={step} />
       </div>
 
-      {step === 1 ? (
+      {/* Step 1 — 학원 코드 */}
+      {step === 1 && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-slate-700" htmlFor="academyCode">
               학원 코드
             </label>
             <div
-              className={`flex h-14 items-center gap-3 rounded-2xl border bg-white px-4 transition focus-within:ring-4 ${
+              className={`flex h-14 items-center rounded-2xl border bg-white px-4 transition focus-within:ring-4 ${
                 codeError
                   ? 'border-red-200 focus-within:border-red-300 focus-within:ring-red-100'
                   : 'border-slate-200 focus-within:border-sky-400 focus-within:ring-sky-100'
@@ -229,16 +280,12 @@ export default function StudentLoginPage() {
                   setAcademyCode(e.target.value.toUpperCase())
                   setCodeError('')
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleCodeSubmit()
-                }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleCodeSubmit() }}
                 placeholder="예: ACAD-3F8K"
                 value={academyCode}
               />
             </div>
-            {codeError ? (
-              <p className="text-sm font-medium text-red-600">{codeError}</p>
-            ) : null}
+            {codeError && <p className="text-sm font-medium text-red-600">{codeError}</p>}
           </div>
 
           <button
@@ -248,76 +295,96 @@ export default function StudentLoginPage() {
             type="button"
           >
             {isCheckingCode ? (
-              <>
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-                확인 중...
-              </>
+              <><LoaderCircle className="h-4 w-4 animate-spin" />확인 중...</>
             ) : (
-              <>
-                다음
-                <ArrowRight className="h-4 w-4" />
-              </>
+              <>다음<ArrowRight className="h-4 w-4" /></>
             )}
           </button>
         </div>
-      ) : null}
+      )}
 
-      {step === 2 ? (
-        <StudentSelectStep
-          academyCode={academyCode}
-          onSelect={handleStudentSelect}
-        />
-      ) : null}
+      {/* Step 2 — 반 선택 → 이름 선택 */}
+      {step === 2 && (
+        <div className="space-y-3">
+          {!selectedClass ? (
+            <>
+              <p className="text-sm text-slate-500">수업 반을 선택해 주세요.</p>
+              {classes.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                  등록된 반이 없어요.
+                </p>
+              ) : (
+                classes.map((cls) => (
+                  <button
+                    key={cls.id}
+                    type="button"
+                    onClick={() => handleClassSelect(cls)}
+                    className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-900 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
+                  >
+                    {cls.name}
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </button>
+                ))
+              )}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => { setSelectedClass(null); setStudents([]) }}
+                className="inline-flex items-center gap-1 text-xs font-medium text-slate-400 transition hover:text-sky-600"
+              >
+                <ArrowLeft className="h-3 w-3" />
+                반 다시 선택
+              </button>
 
-      {step === 3 ? (
+              {isFetchingStudents ? (
+                <div className="flex items-center justify-center py-8 text-slate-400">
+                  <LoaderCircle className="h-5 w-5 animate-spin" />
+                </div>
+              ) : students.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                  이 반에 등록된 학생이 없어요.
+                </p>
+              ) : (
+                students.map((student) => (
+                  <button
+                    key={student.id}
+                    type="button"
+                    onClick={() => handleStudentSelect(student)}
+                    className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-900 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
+                  >
+                    {student.maskedName}
+                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                  </button>
+                ))
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Step 3 — PIN 입력 */}
+      {step === 3 && (
         <div className="space-y-6">
-          <PinKeypad pin={pin} onChange={setPin} />
+          <PinKeypad pin={pin} onChange={(v) => { setPin(v); setPinError('') }} />
+          {pinError && (
+            <p className="text-center text-sm font-medium text-red-600">{pinError}</p>
+          )}
           <button
             className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 text-sm font-semibold text-white shadow-lg shadow-sky-500/20 transition hover:-translate-y-px hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-70"
-            disabled={pin.length < 4}
+            disabled={pin.length < 4 || isLoggingIn}
+            onClick={handleLogin}
             type="button"
           >
-            로그인
-            <ArrowRight className="h-4 w-4" />
+            {isLoggingIn ? (
+              <><LoaderCircle className="h-4 w-4 animate-spin" />로그인 중...</>
+            ) : (
+              <>로그인<ArrowRight className="h-4 w-4" /></>
+            )}
           </button>
         </div>
-      ) : null}
-    </div>
-  )
-}
-
-function StudentSelectStep({
-  academyCode,
-  onSelect,
-}: {
-  academyCode: string
-  onSelect: (student: { id: string; name: string }) => void
-}) {
-  // TODO: Phase 3 — API 연동 후 실제 데이터로 교체
-  // GET /api/auth/students?academyCode=xxx&classId=yyy
-  const placeholder = [
-    { id: '1', name: '김민○' },
-    { id: '2', name: '이수○' },
-    { id: '3', name: '박지○' },
-  ]
-
-  return (
-    <div className="space-y-3">
-      <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
-        DB 연동 전 플레이스홀더입니다. Phase 3 작업 후 실제 학생 목록으로 교체돼요.
-      </p>
-      {placeholder.map((student) => (
-        <button
-          key={student.id}
-          type="button"
-          onClick={() => onSelect(student)}
-          className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 text-left text-sm font-semibold text-slate-900 transition hover:border-sky-300 hover:bg-sky-50 hover:text-sky-700"
-        >
-          {student.name}
-          <ArrowRight className="h-4 w-4 text-slate-400" />
-        </button>
-      ))}
-      <p className="text-center text-xs text-slate-400">코드: {academyCode}</p>
+      )}
     </div>
   )
 }
