@@ -91,62 +91,62 @@ enum BotQuestionStatus {
 }
 
 model Academy {
-  id         String            @id @default(cuid())
-  name       String
-  logoUrl    String?
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
-  users      User[]
-  classes    Class[]
-  curricula  CurriculumClass[]
-  settings   AppSetting[]
+  id        String            @id @default(cuid())
+  name      String
+  logoUrl   String?
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  users     User[]
+  classes   Class[]
+  curricula CurriculumClass[]
+  settings  AppSetting[]
 }
 
 model User {
-  id                   String             @id @default(cuid())
+  id                   String            @id @default(cuid())
   academyId            String
-  email                String             @unique
+  email                String            @unique
   emailVerified        DateTime?
   password             String?
   name                 String
   phone                String?
   image                String?
   role                 UserRole
-  active               Boolean            @default(true)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  academy              Academy            @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  active               Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  academy              Academy           @relation(fields: [academyId], references: [id], onDelete: Cascade)
   studentProfile       StudentProfile?
-  taughtClasses        ClassTeacher[]     @relation("TeacherClasses")
+  taughtClasses        ClassTeacher[]    @relation("TeacherClasses")
   enrollments          Enrollment[]
   attendances          Attendance[]
-  teachingAssignments  Assignment[]       @relation("TeacherAssignments")
+  teachingAssignments  Assignment[]      @relation("TeacherAssignments")
   submissions          Submission[]
-  memos                Memo[]             @relation("TeacherMemos")
-  ownedConsultations   Consultation[]     @relation("ConsultationOwner")
-  studentConsultations Consultation[]     @relation("ConsultationStudent")
-  payments             Payment[]          @relation("PaymentStudent")
+  memos                Memo[]            @relation("TeacherMemos")
+  ownedConsultations   Consultation[]    @relation("ConsultationOwner")
+  studentConsultations Consultation[]    @relation("ConsultationStudent")
+  payments             Payment[]         @relation("PaymentStudent")
   reports              ReportData[]
-  complaints           Complaint[]        @relation("ComplaintStudent")
+  complaints           Complaint[]       @relation("ComplaintStudent")
   churnPredictions     ChurnPrediction[]
   botQuestions         BotQuestion[]
   reviewSummaries      ReviewSummary[]
-  copilotSessions      CopilotSession[]   @relation("CopilotTeacher")
+  copilotSessions      CopilotSession[]  @relation("CopilotTeacher")
   accounts             Account[]
   sessions             Session[]
 }
 
 model StudentProfile {
-  id         String          @id @default(cuid())
-  userId     String          @unique
-  grade      String?
-  school     String?
-  birthDate  DateTime?
-  memo       String?
-  createdAt  DateTime        @default(now())
-  updatedAt  DateTime        @updatedAt
-  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parents    ParentContact[]
+  id        String          @id @default(cuid())
+  userId    String          @unique
+  grade     String?
+  school    String?
+  birthDate DateTime?
+  memo      String?
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parents   ParentContact[]
 }
 
 model ParentContact {
@@ -161,17 +161,17 @@ model ParentContact {
 }
 
 model CurriculumClass {
-  id         String    @id @default(cuid())
-  academyId  String
-  name       String
-  subject    String?
-  level      String?
-  stages     Json
-  sortOrder  Int       @default(0)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  academy    Academy   @relation(fields: [academyId], references: [id], onDelete: Cascade)
-  classes    Class[]
+  id        String   @id @default(cuid())
+  academyId String
+  name      String
+  subject   String?
+  level     String?
+  stages    Json
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  academy   Academy  @relation(fields: [academyId], references: [id], onDelete: Cascade)
+  classes   Class[]
 }
 
 model Class {
@@ -212,21 +212,21 @@ model ClassTeacher {
 }
 
 model Enrollment {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   classId   String
   studentId String
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   deletedAt DateTime?
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class     Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@unique([classId, studentId])
 }
 
 model Schedule {
-  id        String   @id @default(cuid())
+  id        String     @id @default(cuid())
   classId   String
   dayOfWeek Int
   startTime String
@@ -234,9 +234,9 @@ model Schedule {
   room      String?
   color     String?
   note      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  class     Class      @relation(fields: [classId], references: [id], onDelete: Cascade)
   lessons   Lesson[]
   weekNotes WeekNote[]
 
@@ -244,16 +244,16 @@ model Schedule {
 }
 
 model Lesson {
-  id              String           @id @default(cuid())
+  id              String             @id @default(cuid())
   classId         String
   scheduleId      String?
   date            DateTime
   topic           String?
-  status          LessonStatus     @default(SCHEDULED)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  class           Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
-  schedule        Schedule?        @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  status          LessonStatus       @default(SCHEDULED)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  class           Class              @relation(fields: [classId], references: [id], onDelete: Cascade)
+  schedule        Schedule?          @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
   attendances     Attendance[]
   copilotSessions CopilotSession[]
   recordings      RecordingSummary[]
@@ -304,21 +304,21 @@ model Assignment {
 }
 
 model Submission {
-  id            String           @id @default(cuid())
-  assignmentId  String
-  studentId     String
-  content       String?
-  attachments   String[]         @default([])
-  aiUsed        Boolean          @default(false)
-  aiUsageDetail String?
-  submittedAt   DateTime?
-  status        SubmissionStatus @default(DRAFT)
+  id              String              @id @default(cuid())
+  assignmentId    String
+  studentId       String
+  content         String?
+  attachments     String[]            @default([])
+  aiUsed          Boolean             @default(false)
+  aiUsageDetail   String?
+  submittedAt     DateTime?
+  status          SubmissionStatus    @default(DRAFT)
   teacherFeedback String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  assignment    Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  student       User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  history       SubmissionHistory[]
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  assignment      Assignment          @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  student         User                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  history         SubmissionHistory[]
 
   @@unique([assignmentId, studentId])
 }
@@ -507,13 +507,13 @@ model BotQuestion {
 }
 
 model BotFAQ {
-  id        String    @id @default(cuid())
+  id        String   @id @default(cuid())
   classId   String?
   question  String
   answer    String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  class     Class?    @relation(fields: [classId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  class     Class?   @relation(fields: [classId], references: [id], onDelete: SetNull)
 }
 
 model ReviewSummary {
@@ -528,6 +528,8 @@ model ReviewSummary {
   updatedAt DateTime  @updatedAt
   student   User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
   lesson    Lesson?   @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@unique([lessonId, studentId])
 }
 
 model AppSetting {
@@ -543,19 +545,19 @@ model AppSetting {
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String? @db.Text
-  access_token       String? @db.Text
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String? @db.Text
-  session_state      String?
-  user               User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }

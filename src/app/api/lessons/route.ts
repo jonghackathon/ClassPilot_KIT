@@ -7,12 +7,19 @@ import { getPageParams, withAuth } from '@/lib/with-auth'
 
 const lessonStatuses = new Set(['SCHEDULED', 'COMPLETED', 'CANCELLED'])
 
-function parseDateParam(value?: string | null) {
+function isDateOnly(value: string) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function parseDateParam(value?: string | null, boundary: 'start' | 'end' = 'start') {
   if (!value) {
     return null
   }
 
-  const parsed = new Date(value)
+  const parsed = isDateOnly(value)
+    ? new Date(`${value}T${boundary === 'start' ? '00:00:00.000' : '23:59:59.999'}`)
+    : new Date(value)
+
   return Number.isNaN(parsed.getTime()) ? null : parsed
 }
 
@@ -24,8 +31,8 @@ export async function GET(request: NextRequest) {
   const classId = searchParams.get('classId') ?? undefined
   const scheduleId = searchParams.get('scheduleId') ?? undefined
   const status = searchParams.get('status') ?? undefined
-  const from = parseDateParam(searchParams.get('from'))
-  const to = parseDateParam(searchParams.get('to'))
+  const from = parseDateParam(searchParams.get('from'), 'start')
+  const to = parseDateParam(searchParams.get('to'), 'end')
 
   if ((searchParams.get('from') && !from) || (searchParams.get('to') && !to)) {
     return errorResponse('VALIDATION', '날짜 필터 형식이 올바르지 않습니다.', 400)
