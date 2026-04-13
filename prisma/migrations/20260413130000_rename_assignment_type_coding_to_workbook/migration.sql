@@ -1,2 +1,0 @@
--- AssignmentType enum: CODING → WORKBOOK
-ALTER TYPE "AssignmentType" RENAME VALUE 'CODING' TO 'WORKBOOK';
