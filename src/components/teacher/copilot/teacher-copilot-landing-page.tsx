@@ -27,23 +27,28 @@ type LessonItem = {
   }
 }
 
-function getDateKey() {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-  }).format(new Date())
+function getDateRange() {
+  const now = new Date()
+  const to = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+  const from = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(
+    new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+  )
+  return { from, to }
 }
 
 function formatLessonTime(value: string) {
   return new Intl.DateTimeFormat('ko-KR', {
+    month: 'short',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
 }
 
 export function TeacherCopilotLandingPage() {
-  const today = getDateKey()
+  const { from, to } = getDateRange()
   const { data, isLoading } = useCopilot<ApiEnvelope<PaginatedData<LessonItem>>>(
-    `/api/lessons?from=${today}&to=${today}&limit=20`,
+    `/api/lessons?from=${from}&to=${to}&limit=20`,
   )
 
   const lessons = data?.data.items ?? []
@@ -52,8 +57,8 @@ export function TeacherCopilotLandingPage() {
     <div className="space-y-6">
       <PageHero
         eyebrow="AI 수업 코파일럿"
-        title="오늘 수업 중 바로 시작할 세션을 선택해 주세요"
-        description="실제 lesson 데이터를 기준으로 오늘 수업을 골라 세션으로 들어갑니다."
+        title="최근 수업 중 코파일럿 세션을 선택해 주세요"
+        description="최근 2주 수업을 기준으로 세션을 열 수 있습니다."
         backHref="/teacher/dashboard"
         backLabel="강사 홈"
       />
@@ -95,7 +100,7 @@ export function TeacherCopilotLandingPage() {
           ))
         ) : (
           <SurfaceCard className="xl:col-span-2">
-            <p className="text-sm text-slate-500">오늘 등록된 수업이 없습니다.</p>
+            <p className="text-sm text-slate-500">최근 2주 내 등록된 수업이 없습니다.</p>
           </SurfaceCard>
         )}
       </div>

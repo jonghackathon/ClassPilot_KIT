@@ -50,10 +50,13 @@ type RecordingItem = {
   }
 }
 
-function getDateKey() {
-  return new Intl.DateTimeFormat('sv-SE', {
-    timeZone: 'Asia/Seoul',
-  }).format(new Date())
+function getDateRange() {
+  const now = new Date()
+  const to = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(now)
+  const from = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(
+    new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000),
+  )
+  return { from, to }
 }
 
 function formatDate(value: string) {
@@ -66,8 +69,8 @@ function formatDate(value: string) {
 }
 
 export function TeacherRecordingPage() {
-  const today = getDateKey()
-  const lessonsKey = `/api/lessons?from=${today}&to=${today}&limit=20`
+  const { from, to } = getDateRange()
+  const lessonsKey = `/api/lessons?from=${from}&to=${to}&limit=20`
   const recordingsKey = '/api/recordings?limit=20'
   const { data: lessonsResponse } = useCopilot<ApiEnvelope<PaginatedData<LessonItem>>>(lessonsKey)
   const { data: recordingsResponse } = useRecordings<ApiEnvelope<PaginatedData<RecordingItem>>>(
