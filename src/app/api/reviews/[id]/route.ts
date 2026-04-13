@@ -32,7 +32,7 @@ export async function GET(_request: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
-  const { session, error } = await withAuth(['ADMIN', 'TEACHER'])
+  const { session, error } = await withAuth(['ADMIN', 'TEACHER', 'STUDENT'])
   if (error || !session) return error
 
   const { id } = await Promise.resolve(context.params)
@@ -43,6 +43,19 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   if (!current || current.student.academyId !== session.user.academyId) {
     return errorResponse('NOT_FOUND', '복습 기록을 찾을 수 없습니다.', 404)
   }
+
+  // STUDENT: 본인 복습의 readAt(읽음 처리)만 가능
+  if (session.user.role === 'STUDENT') {
+    if (current.studentId !== session.user.id) {
+      return errorResponse('FORBIDDEN', '권한이 없습니다.', 403)
+    }
+    const updated = await prisma.reviewSummary.update({
+      where: { id },
+      data: { readAt: new Date() },
+    })
+    return successResponse(updated)
+  }
+
   if (
     session.user.role === 'TEACHER' &&
     !(await getTeacherStudentIds(session.user.id)).includes(current.studentId)

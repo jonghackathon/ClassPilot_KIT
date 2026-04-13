@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useSWR from 'swr'
 import { CheckCircle2, Clock3, Paperclip, Save, Send, Sparkles, X } from 'lucide-react'
 
@@ -141,6 +141,8 @@ function SubmissionEditor({
     submission?.updatedAt ?? submission?.submittedAt ?? null,
   )
   const [submitModalOpen, setSubmitModalOpen] = useState(false)
+  // POST 성공 후 mutate 완료 전 사이에 재저장이 발생해도 PATCH를 쓰도록 id를 추적
+  const submissionIdRef = useRef<string | null>(submission?.id ?? null)
 
   const currentSnapshot = serializeDraft(content, aiUsed, aiUsageDetail)
   const dirty = currentSnapshot !== savedSnapshot
@@ -167,15 +169,21 @@ function SubmissionEditor({
           status: mode === 'submit' ? 'SUBMITTED' : 'DRAFT',
         }
 
-        const endpoint = submission
-          ? `/api/assignments/${assignmentId}/submissions/${submission.id}`
+        const currentSubmissionId = submissionIdRef.current
+        const endpoint = currentSubmissionId
+          ? `/api/assignments/${assignmentId}/submissions/${currentSubmissionId}`
           : `/api/assignments/${assignmentId}/submissions`
-        const method = submission ? 'PATCH' : 'POST'
+        const method = currentSubmissionId ? 'PATCH' : 'POST'
 
         const response = await apiRequest<SubmissionEnvelope>(endpoint, {
           method,
           body: JSON.stringify(payload),
         })
+
+        // POST로 처음 생성된 경우 id를 ref에 저장 (mutate 완료 전 재저장 시 PATCH 사용)
+        if (!currentSubmissionId && response.data.id) {
+          submissionIdRef.current = response.data.id
+        }
 
         const savedAt =
           mode === 'submit'
@@ -204,7 +212,6 @@ function SubmissionEditor({
       dirty,
       hasDraftContent,
       refreshAssignment,
-      submission,
     ],
   )
 
